@@ -1,0 +1,2806 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>مربی بدنسازی | Workout Tracker</title>
+  <style>
+:root {
+  --bg: #0b1220;
+  --bg-card: #111827;
+  --bg-elevated: #1e293b;
+  --border: #334155;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --primary: #22d3ee;
+  --primary-dim: #0891b2;
+  --accent: #a78bfa;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --orange: #fb923c;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --nav-h: 68px;
+  --header-h: 64px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  font-family: 'Vazirmatn', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+#app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  max-width: 520px;
+  margin: 0 auto;
+  position: relative;
+  background: var(--bg);
+}
+
+/* Header */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: linear-gradient(180deg, #0f172a 0%, #0b1220 100%);
+  border-bottom: 1px solid var(--border);
+  padding-top: env(safe-area-inset-top, 0);
+}
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-h);
+  padding: 0 16px;
+}
+.app-title { font-size: 1.2rem; font-weight: 700; }
+.header-actions { display: flex; gap: 8px; }
+.icon-btn {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: grid; place-items: center;
+}
+.week-progress {
+  height: 3px;
+  background: var(--bg-elevated);
+}
+.week-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+/* Main */
+.main-content {
+  flex: 1;
+  padding: 12px 14px calc(var(--nav-h) + var(--safe-bottom) + 16px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Bottom Nav */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 520px;
+  height: calc(var(--nav-h) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 60;
+}
+.nav-item {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  background: none; border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.nav-item.active { color: var(--primary); }
+.nav-icon { font-size: 1.35rem; }
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+.card-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+/* Grid helpers */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: none;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.15s;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-dim), var(--primary));
+  color: #0f172a;
+}
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-success { background: var(--success); color: #064e3b; }
+.btn-danger { background: var(--danger); color: #7f1d1d; }
+.btn-block { width: 100%; }
+.btn-lg { padding: 16px 20px; font-size: 1.05rem; }
+.btn-sm { padding: 8px 12px; font-size: 0.85rem; }
+
+/* Tags */
+.tag {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.tag-primary { background: rgba(34,211,238,0.15); color: var(--primary); }
+.tag-success { background: rgba(52,211,153,0.15); color: var(--success); }
+.tag-warning { background: rgba(251,191,36,0.15); color: var(--warning); }
+.tag-danger { background: rgba(248,113,113,0.15); color: var(--danger); }
+.tag-accent { background: rgba(167,139,250,0.15); color: var(--accent); }
+
+/* Session cards */
+.session-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.session-card:active { border-color: var(--primary); }
+.session-card.today { border-color: var(--primary); background: linear-gradient(135deg, rgba(8,145,178,0.12), transparent); }
+.session-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 6px;
+}
+.session-name { font-weight: 700; font-size: 1.05rem; }
+.session-muscles { color: var(--text-muted); font-size: 0.85rem; }
+
+/* Exercise list */
+.exercise-item {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid transparent;
+}
+.exercise-item.done { border-color: var(--success); opacity: 0.85; }
+.exercise-name { font-weight: 600; margin-bottom: 4px; }
+.exercise-meta {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  font-size: 0.8rem; color: var(--text-muted);
+}
+
+/* Active workout */
+.workout-header {
+  position: sticky; top: 0; z-index: 40;
+  background: var(--bg);
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--border);
+  margin: -12px -14px 12px;
+  padding-left: 14px; padding-right: 14px;
+}
+.timer-display {
+  font-size: 2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--primary);
+}
+.rest-timer {
+  background: var(--bg-elevated);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  margin: 12px 0;
+  border: 2px solid var(--primary);
+}
+.rest-timer .time {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+.set-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 1fr 1fr 44px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.set-row input {
+  width: 100%;
+  padding: 10px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  text-align: center;
+}
+.set-row .set-num {
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: center;
+}
+.set-row.done input { border-color: var(--success); background: rgba(52,211,153,0.08); }
+.check-btn {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.check-btn.checked {
+  background: var(--success);
+  color: #064e3b;
+  border-color: var(--success);
+}
+
+/* Forms */
+.form-group { margin-bottom: 14px; }
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.form-input, .form-select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1rem;
+}
+.form-input:focus, .form-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* Progress bars */
+.progress-bar {
+  height: 8px;
+  background: var(--bg-elevated);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+/* Charts (simple CSS) */
+.chart-container {
+  height: 140px;
+  position: relative;
+  margin-top: 8px;
+}
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  gap: 4px;
+}
+.chart-bar {
+  flex: 1;
+  background: linear-gradient(180deg, var(--primary), var(--primary-dim));
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  position: relative;
+}
+.chart-bar span {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Supplements */
+.supp-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+}
+.supp-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: grid; place-items: center;
+  font-size: 1.3rem;
+  background: rgba(34,211,238,0.12);
+}
+.supp-info { flex: 1; }
+.supp-name { font-weight: 600; }
+.supp-dose { font-size: 0.85rem; color: var(--text-muted); }
+.supp-actions { display: flex; gap: 6px; }
+
+/* History */
+.history-item {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.history-item:last-child { border-bottom: none; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 100;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 0;
+}
+.modal-sheet {
+  background: var(--bg-card);
+  border-radius: 20px 20px 0 0;
+  width: 100%; max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px 16px calc(20px + var(--safe-bottom));
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.modal-close {
+  position: absolute; top: 12px; left: 12px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + 20px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-elevated);
+  color: var(--text);
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  z-index: 200;
+  font-weight: 500;
+  box-shadow: var(--shadow);
+  max-width: 90%;
+  text-align: center;
+  transition: opacity 0.3s, transform 0.3s;
+}
+.toast.hidden { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(10px); }
+.toast.success { border-color: var(--success); }
+.toast.warning { border-color: var(--warning); }
+.toast.danger { border-color: var(--danger); }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+.empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+/* Safety banner */
+.safety-banner {
+  background: rgba(248,113,113,0.12);
+  border: 1px solid rgba(248,113,113,0.3);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  color: var(--danger);
+  margin-bottom: 12px;
+}
+
+/* Utility */
+.hidden { display: none !important; }
+.text-muted { color: var(--text-muted); }
+.text-success { color: var(--success); }
+.text-primary { color: var(--primary); }
+.text-center { text-align: center; }
+.mt-1 { margin-top: 8px; }
+.mt-2 { margin-top: 16px; }
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 16px; }
+.flex { display: flex; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.gap-1 { gap: 8px; }
+.gap-2 { gap: 12px; }
+
+/* Active workout full screen mode */
+body.workout-mode .bottom-nav { display: none; }
+body.workout-mode .main-content { padding-bottom: 20px; }
+body.workout-mode .app-header { display: none; }
+
+/* Responsive tweaks */
+@media (min-width: 480px) {
+  .set-row { grid-template-columns: 40px 1fr 1fr 1fr 48px; gap: 8px; }
+}
+
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div class="header-content">
+        <h1 class="app-title" id="page-title">داشبورد</h1>
+        <div class="header-actions">
+          <button class="icon-btn" id="btn-refresh" title="بروزرسانی">↻</button>
+          <button class="icon-btn" id="btn-settings-header" title="تنظیمات">⚙</button>
+        </div>
+      </div>
+      <div class="week-progress" id="week-progress-bar">
+        <div class="week-fill" id="week-fill"></div>
+      </div>
+    </header>
+    <main class="main-content" id="main-content"></main>
+    <nav class="bottom-nav" id="bottom-nav">
+      <button class="nav-item active" data-view="dashboard">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">داشبورد</span>
+      </button>
+      <button class="nav-item" data-view="workouts">
+        <span class="nav-icon">💪</span>
+        <span class="nav-label">تمرین</span>
+      </button>
+      <button class="nav-item" data-view="supplements">
+        <span class="nav-icon">💊</span>
+        <span class="nav-label">مکمل</span>
+      </button>
+      <button class="nav-item" data-view="progress">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">پیشرفت</span>
+      </button>
+      <button class="nav-item" data-view="more">
+        <span class="nav-icon">☰</span>
+        <span class="nav-label">بیشتر</span>
+      </button>
+    </nav>
+    <div id="toast" class="toast hidden"></div>
+    <div id="modal-root"></div>
+  </div>
+  <script>
+// ========== PROGRAM DATA (from user's plan - DO NOT change training logic) ==========
+const PROGRAM = {
+  name: "برنامه ۴ جلسه‌ای سرشانه و بازو",
+  weeks: 8,
+  sessionsPerWeek: 4,
+  user: {
+    gender: "male",
+    age: 44,
+    weight: 94,
+    height: 178,
+    experienceYears: 30,
+    limitation: "L4-L5 mild disc",
+    goals: ["shoulder hypertrophy", "arm hypertrophy", "fat loss", "muscle retention"]
+  },
+  forbiddenMoves: [
+    "اسکوات هالتر سنگین",
+    "ددلیفت",
+    "Romanian Deadlift",
+    "Good Morning",
+    "Bent-over Row سنگین",
+    "حرکات چرخشی سنگین تنه",
+    "کرانچ سنگین با دامنه زیاد"
+  ],
+  sessions: [
+    {
+      id: 1,
+      name: "سرشانه + سینه + پشت بازو",
+      shortName: "جلسه ۱",
+      color: "#22d3ee",
+      muscles: ["سرشانه", "سینه", "پشت بازو"],
+      warmUp: "۸ دقیقه: ۵ دقیقه دوچرخه/الپتیکال + چرخش شانه + ۲ ست سبک حرکت اول",
+      exercises: [
+        { id: "s1e1", name: "پرس سینه دستگاه", muscle: "سینه", sets: 3, reps: "6–10", rest: "2–3 دقیقه", rir: "2", note: "فرم کامل، کمر خنثی", safety: "از قوس بیش از حد کمر پرهیز کنید" },
+        { id: "s1e2", name: "پرس بالا سینه دستگاه", muscle: "سینه", sets: 2, reps: "8–12", rest: "2 دقیقه", rir: "2", note: "", safety: "" },
+        { id: "s1e3", name: "پرس سرشانه دستگاه با پشتی", muscle: "سرشانه", sets: 2, reps: "8–12", rest: "2 دقیقه", rir: "2", note: "", safety: "پشتی کاملاً تکیه" },
+        { id: "s1e4", name: "نشر جانب سیم‌کش", muscle: "سرشانه (میانی)", sets: 4, reps: "12–20", rest: "60–90ث", rir: "1–2", note: "وزنه را قربانی دامنه حرکت نکنید. هدف دلتوئید میانی است", safety: "" },
+        { id: "s1e5", name: "فلای معکوس دستگاه", muscle: "سرشانه (خلفی)", sets: 2, reps: "12–20", rest: "60–90ث", rir: "1–2", note: "", safety: "" },
+        { id: "s1e6", name: "پشت بازو سیم‌کش طنابی", muscle: "پشت بازو", sets: 3, reps: "8–12", rest: "75–90ث", rir: "1–2", note: "", safety: "" },
+        { id: "s1e7", name: "پشت بازو سیم‌کش بالای سر", muscle: "پشت بازو", sets: 2, reps: "10–15", rest: "60–90ث", rir: "1–2", note: "", safety: "" }
+      ]
+    },
+    {
+      id: 2,
+      name: "پشت + جلو بازو + پا + میان‌تنه",
+      shortName: "جلسه ۲",
+      color: "#a78bfa",
+      muscles: ["پشت", "جلو بازو", "پا", "میان‌تنه"],
+      warmUp: "۵–۸ دقیقه گرم کردن سبک + ۲ ست سبک حرکت اول",
+      exercises: [
+        { id: "s2e1", name: "لت‌پول‌داون دست خنثی", muscle: "پشت", sets: 3, reps: "8–12", rest: "2 دقیقه", rir: "2", note: "", safety: "" },
+        { id: "s2e2", name: "قایقی دستگاه با تکیه‌گاه سینه", muscle: "پشت", sets: 3, reps: "8–12", rest: "2 دقیقه", rir: "2", note: "تکیه‌گاه سینه اجباری", safety: "از خم شدن کمر پرهیز" },
+        { id: "s2e3", name: "پرس پا", muscle: "چهارسر", sets: 3, reps: "8–12", rest: "2–3 دقیقه", rir: "2–3", note: "کمر کاملاً خنثی و متکی. پایین رفتن بیش از دامنه گرد شدن لگن ممنوع", safety: "در صورت درد تیرکشنده متوقف شوید" },
+        { id: "s2e4", name: "جلو پا دستگاه", muscle: "چهارسر", sets: 2, reps: "10–15", rest: "75–90ث", rir: "1–2", note: "", safety: "" },
+        { id: "s2e5", name: "پشت پا نشسته", muscle: "همسترینگ", sets: 3, reps: "10–15", rest: "75–90ث", rir: "1–2", note: "", safety: "" },
+        { id: "s2e6", name: "ساق نشسته", muscle: "ساق", sets: 3, reps: "10–15", rest: "60–90ث", rir: "1–2", note: "", safety: "" },
+        { id: "s2e7", name: "جلو بازو لاری دستگاه", muscle: "جلو بازو", sets: 2, reps: "8–12", rest: "75–90ث", rir: "1–2", note: "", safety: "" },
+        { id: "s2e8", name: "جلو بازو سیم‌کش", muscle: "جلو بازو", sets: 2, reps: "10–15", rest: "60–90ث", rir: "1–2", note: "", safety: "" },
+        { id: "s2e9", name: "پالوف پرس", muscle: "میان‌تنه", sets: 2, reps: "10–15 هر طرف", rest: "45–60ث", rir: "—", note: "ثبات تنه", safety: "بدون چرخش سنگین" }
+      ]
+    },
+    {
+      id: 3,
+      name: "سرشانه + بازو + پشت (تخصصی)",
+      shortName: "جلسه ۳",
+      color: "#fbbf24",
+      muscles: ["سرشانه", "بازو", "پشت"],
+      warmUp: "گرم کردن شانه و پشت + ۲ ست سبک",
+      note: "مهم‌ترین جلسه برای تغییر ظاهر بالاتنه",
+      exercises: [
+        { id: "s3e1", name: "پرس سرشانه دستگاه با پشتی", muscle: "سرشانه", sets: 3, reps: "6–10", rest: "2 دقیقه", rir: "2", note: "", safety: "پشتی کامل" },
+        { id: "s3e2", name: "نشر جانب دستگاه", muscle: "سرشانه (میانی)", sets: 4, reps: "12–20", rest: "60–90ث", rir: "1–2", note: "دامنه کامل، وزنه مناسب", safety: "" },
+        { id: "s3e3", name: "فلای معکوس دستگاه", muscle: "سرشانه (خلفی)", sets: 3, reps: "12–20", rest: "60–90ث", rir: "1–2", note: "", safety: "" },
+        { id: "s3e4", name: "لت‌پول‌داون", muscle: "پشت", sets: 3, reps: "8–12", rest: "2 دقیقه", rir: "2", note: "", safety: "" },
+        { id: "s3e5", name: "قایقی سینه‌تکیه", muscle: "پشت", sets: 3, reps: "8–12", rest: "2 دقیقه", rir: "2", note: "سینه‌تکیه اجباری", safety: "" },
+        { id: "s3e6", name: "جلو بازو دمبل روی میز شیب‌دار", muscle: "جلو بازو", sets: 3, reps: "8–12", rest: "75–90ث", rir: "1–2", note: "اگر کمر/شانه ناراحت بود → جلو بازو دستگاه", safety: "جایگزین دستگاه در صورت ناراحتی" },
+        { id: "s3e7", name: "جلو بازو چکشی طنابی", muscle: "جلو بازو", sets: 2, reps: "10–15", rest: "60–90ث", rir: "1", note: "", safety: "" },
+        { id: "s3e8", name: "پشت بازو طنابی", muscle: "پشت بازو", sets: 3, reps: "8–12", rest: "75–90ث", rir: "1–2", note: "", safety: "" },
+        { id: "s3e9", name: "پشت بازو تک‌دست سیم‌کش", muscle: "پشت بازو", sets: 2, reps: "10–15", rest: "60ث", rir: "1", note: "", safety: "" },
+        { id: "s3e10", name: "شراگ دستگاه/سیم‌کش", muscle: "ذوزنقه", sets: 2, reps: "10–15", rest: "75ث", rir: "1–2", note: "با تکیه مناسب", safety: "" }
+      ]
+    },
+    {
+      id: 4,
+      name: "پا + سینه + سرشانه + بازو",
+      shortName: "جلسه ۴",
+      color: "#34d399",
+      muscles: ["پا", "سینه", "سرشانه", "بازو"],
+      warmUp: "گرم کردن پا و بالاتنه",
+      exercises: [
+        { id: "s4e1", name: "پرس پا", muscle: "چهارسر", sets: 3, reps: "8–12", rest: "2–3 دقیقه", rir: "2–3", note: "کمر خنثی و متکی", safety: "در صورت درد تیرکشنده متوقف شوید" },
+        { id: "s4e2", name: "پشت پا نشسته/خوابیده", muscle: "همسترینگ", sets: 3, reps: "8–12", rest: "90ث", rir: "1–2", note: "", safety: "" },
+        { id: "s4e3", name: "جلو پا دستگاه", muscle: "چهارسر", sets: 2, reps: "10–15", rest: "75ث", rir: "1–2", note: "", safety: "" },
+        { id: "s4e4", name: "کیک‌بک باسن دستگاه/سیم‌کش", muscle: "باسن", sets: 2, reps: "12–15", rest: "60–75ث", rir: "1–2", note: "", safety: "" },
+        { id: "s4e5", name: "ساق نشسته", muscle: "ساق", sets: 3, reps: "10–15", rest: "60–90ث", rir: "1–2", note: "", safety: "" },
+        { id: "s4e6", name: "پرس سینه دستگاه", muscle: "سینه", sets: 3, reps: "8–12", rest: "2 دقیقه", rir: "2", note: "", safety: "" },
+        { id: "s4e7", name: "نشر جانب سیم‌کش", muscle: "سرشانه", sets: 3, reps: "15–20", rest: "60ث", rir: "1", note: "", safety: "" },
+        { id: "s4e8", name: "جلو بازو سیم‌کش", muscle: "جلو بازو", sets: 2, reps: "10–15", rest: "60ث", rir: "1", note: "", safety: "" },
+        { id: "s4e9", name: "پشت بازو طنابی", muscle: "پشت بازو", sets: 2, reps: "10–15", rest: "60ث", rir: "1", note: "", safety: "" },
+        { id: "s4e10", name: "پلانک بغل", muscle: "میان‌تنه", sets: 2, reps: "30–45ث هر طرف", rest: "45ث", rir: "—", note: "", safety: "" },
+        { id: "s4e11", name: "ددباگ", muscle: "میان‌تنه", sets: 2, reps: "8–12 هر طرف", rest: "45ث", rir: "—", note: "", safety: "کنترل کمر" }
+      ]
+    }
+  ],
+  volumeTargets: {
+    "سرشانه": "18–19",
+    "جلو بازو": "11",
+    "پشت بازو": "12",
+    "پشت": "12",
+    "سینه": "8",
+    "چهارسر ران": "7",
+    "همسترینگ": "6",
+    "باسن": "2 مستقیم + غیرمستقیم",
+    "ساق": "6",
+    "میان‌تنه": "6"
+  },
+  cardio: [
+    { name: "جلسه A – دوچرخه ثابت", duration: "30–35 دقیقه", intensity: "متوسط" },
+    { name: "جلسه B – الپتیکال/دوچرخه", duration: "30–40 دقیقه", intensity: "متوسط" }
+  ],
+  nutritionTargets: {
+    calorieDeficit: "300–500 کیلوکالری",
+    weightLossPerWeek: "0.3–0.6 کیلوگرم",
+    protein: "170–190 گرم",
+    steps: "8000–10000"
+  }
+};
+
+// ========== کاتالوگ کامل مکمل‌های ورزشی ==========
+// timing: pre | post | daily | morning | evening | with_meal | anytime
+// offsetMin: دقیقه قبل (منفی) یا بعد از ساعت تمرین برای محاسبه خودکار
+const SUPPLEMENT_CATALOG = [
+  // سطح A — شواهد قوی
+  {
+    id: "creatine",
+    name: "کراتین مونوهیدرات",
+    dose: "3–5 گرم",
+    defaultDose: 5,
+    unit: "گرم",
+    level: "A",
+    category: "عملکرد / حجم",
+    timing: "daily",
+    offsetMin: 0,
+    defaultEnabled: true,
+    note: "هر روز حتی استراحت. زمان دقیق مهم نیست؛ می‌توانید بعد تمرین یا با وعده مصرف کنید. بارگیری لازم نیست."
+  },
+  {
+    id: "whey",
+    name: "پروتئین وی",
+    dose: "25–35 گرم",
+    defaultDose: 30,
+    unit: "گرم",
+    level: "A",
+    category: "پروتئین",
+    timing: "post",
+    offsetMin: 30,
+    defaultEnabled: true,
+    note: "برای تکمیل پروتئین روزانه (۱۷۰–۱۹۰ گرم). بعد تمرین یا بین وعده‌ها. وی جادویی نیست؛ فقط ابزار رسیدن به هدف پروتئین است."
+  },
+  {
+    id: "casein",
+    name: "کازئین",
+    dose: "25–40 گرم",
+    defaultDose: 30,
+    unit: "گرم",
+    level: "B",
+    category: "پروتئین",
+    timing: "evening",
+    offsetMin: 0,
+    defaultEnabled: false,
+    note: "پروتئین کندرهش؛ مناسب قبل خواب اگر پروتئین شام کافی نیست."
+  },
+  // سطح B — مفید
+  {
+    id: "caffeine",
+    name: "کافئین",
+    dose: "100–200 میلی‌گرم",
+    defaultDose: 150,
+    unit: "میلی‌گرم",
+    level: "B",
+    category: "انرژی / تمرکز",
+    timing: "pre",
+    offsetMin: -45,
+    defaultEnabled: true,
+    note: "۳۰–۶۰ دقیقه قبل تمرین. اگر تمرین شبانه است یا به کافئین حساسید، دوز را کم کنید یا خاموش کنید."
+  },
+  {
+    id: "betaalanine",
+    name: "بتاآلانین",
+    dose: "3–6 گرم",
+    defaultDose: 4,
+    unit: "گرم",
+    level: "B",
+    category: "عملکرد",
+    timing: "daily",
+    offsetMin: 0,
+    defaultEnabled: false,
+    note: "مصرف روزانه برای اشباع. ممکن است گزگز پوست ایجاد کند (بی‌خطر). برای ست‌های طولانی‌تر مفید است."
+  },
+  {
+    id: "citrulline",
+    name: "سیترولین مالات",
+    dose: "6–8 گرم",
+    defaultDose: 6,
+    unit: "گرم",
+    level: "B",
+    category: "پمپ / استقامت",
+    timing: "pre",
+    offsetMin: -45,
+    defaultEnabled: false,
+    note: "۳۰–۶۰ دقیقه قبل تمرین. به پمپ و کاهش خستگی کمک می‌کند."
+  },
+  {
+    id: "citrulline_pure",
+    name: "ال-سیترولین",
+    dose: "3–6 گرم",
+    defaultDose: 4,
+    unit: "گرم",
+    level: "B",
+    category: "پمپ",
+    timing: "pre",
+    offsetMin: -40,
+    defaultEnabled: false,
+    note: "جایگزین سیترولین مالات؛ قبل تمرین."
+  },
+  {
+    id: "betaine",
+    name: "بتائین (TMG)",
+    dose: "2–2.5 گرم",
+    defaultDose: 2.5,
+    unit: "گرم",
+    level: "B",
+    category: "عملکرد",
+    timing: "pre",
+    offsetMin: -45,
+    defaultEnabled: false,
+    note: "قبل تمرین؛ شواهد متوسط برای قدرت و حجم."
+  },
+  {
+    id: "taurine",
+    name: "تائورین",
+    dose: "1–3 گرم",
+    defaultDose: 2,
+    unit: "گرم",
+    level: "B",
+    category: "عملکرد",
+    timing: "pre",
+    offsetMin: -45,
+    defaultEnabled: false,
+    note: "گاهی در پری‌ورک‌اوت‌ها؛ قبل تمرین."
+  },
+  {
+    id: "electrolytes",
+    name: "الکترولیت / نمک",
+    dose: "طبق تعریق",
+    defaultDose: 1,
+    unit: "وعده",
+    level: "B",
+    category: "هیدراتاسیون",
+    timing: "pre",
+    offsetMin: -15,
+    defaultEnabled: false,
+    note: "در تمرین طولانی یا تعریق زیاد؛ قبل/حین تمرین."
+  },
+  // سطح C — در صورت نیاز / غذایی
+  {
+    id: "vitd",
+    name: "ویتامین D",
+    dose: "طبق آزمایش",
+    defaultDose: 2000,
+    unit: "IU",
+    level: "C",
+    category: "ویتامین",
+    timing: "morning",
+    offsetMin: 0,
+    defaultEnabled: false,
+    note: "فقط در صورت کمبود آزمایشگاهی یا توصیه پزشک. با غذای چرب بهتر جذب می‌شود."
+  },
+  {
+    id: "omega3",
+    name: "امگا ۳ (EPA+DHA)",
+    dose: "1–2 گرم",
+    defaultDose: 1.5,
+    unit: "گرم",
+    level: "C",
+    category: "چربی ضروری",
+    timing: "with_meal",
+    offsetMin: 0,
+    defaultEnabled: false,
+    note: "اگر ماهی چرب منظم نمی‌خورید. با وعده غذایی."
+  },
+  {
+    id: "magnesium",
+    name: "منیزیم",
+    dose: "200–400 میلی‌گرم",
+    defaultDose: 300,
+    unit: "میلی‌گرم",
+    level: "C",
+    category: "مواد معدنی",
+    timing: "evening",
+    offsetMin: 0,
+    defaultEnabled: false,
+    note: "در صورت کمبود غذایی؛ عصر/قبل خواب. به خواب و ریکاوری کمک می‌کند."
+  },
+  {
+    id: "zinc",
+    name: "زینک",
+    dose: "15–30 میلی‌گرم",
+    defaultDose: 15,
+    unit: "میلی‌گرم",
+    level: "C",
+    category: "مواد معدنی",
+    timing: "evening",
+    offsetMin: 0,
+    defaultEnabled: false,
+    note: "فقط در صورت کمبود. زیاده‌روی مضر است."
+  },
+  {
+    id: "multivitamin",
+    name: "مولتی‌ویتامین",
+    dose: "۱ عدد",
+    defaultDose: 1,
+    unit: "عدد",
+    level: "C",
+    category: "عمومی",
+    timing: "morning",
+    offsetMin: 0,
+    defaultEnabled: false,
+    note: "پوشش کمبودهای جزئی؛ جایگزین رژیم غذایی نیست."
+  },
+  {
+    id: "ashwagandha",
+    name: "آشوگاندا",
+    dose: "300–600 میلی‌گرم",
+    defaultDose: 300,
+    unit: "میلی‌گرم",
+    level: "C",
+    category: "آداپتوژن",
+    timing: "evening",
+    offsetMin: 0,
+    defaultEnabled: false,
+    note: "ممکن است به کاهش استرس و خواب کمک کند. شواهد متوسط."
+  },
+  {
+    id: "vitamin_c",
+    name: "ویتامین C",
+    dose: "500–1000 میلی‌گرم",
+    defaultDose: 500,
+    unit: "میلی‌گرم",
+    level: "C",
+    category: "ویتامین",
+    timing: "with_meal",
+    offsetMin: 0,
+    defaultEnabled: false,
+    note: "در دوز بالا مزیت عضله‌سازی اثبات‌شده ندارد؛ در صورت نیاز غذایی."
+  },
+  {
+    id: "collagen",
+    name: "کلاژن",
+    dose: "10–15 گرم",
+    defaultDose: 10,
+    unit: "گرم",
+    level: "C",
+    category: "مفصل / پوست",
+    timing: "anytime",
+    offsetMin: 0,
+    defaultEnabled: false,
+    note: "برای مفاصل/پوست؛ برای عضله‌سازی پروتئین کامل اولویت دارد."
+  },
+  // معمولاً غیرضروری — پیش‌فرض خاموش
+  {
+    id: "bcaa",
+    name: "BCAA",
+    dose: "۵–۱۰ گرم",
+    defaultDose: 5,
+    unit: "گرم",
+    level: "optional",
+    category: "غیرضروری",
+    timing: "pre",
+    offsetMin: -20,
+    defaultEnabled: false,
+    note: "با پروتئین کافی (۱۷۰+ گرم) معمولاً لازم نیست."
+  },
+  {
+    id: "glutamine",
+    name: "گلوتامین",
+    dose: "۵–۱۰ گرم",
+    defaultDose: 5,
+    unit: "گرم",
+    level: "optional",
+    category: "غیرضروری",
+    timing: "post",
+    offsetMin: 15,
+    defaultEnabled: false,
+    note: "برای هدف عضله‌سازی شما مکمل ضروری محسوب نمی‌شود."
+  },
+  {
+    id: "fatburner",
+    name: "چربی‌سوز (ترموژنیک)",
+    dose: "طبق برچسب",
+    defaultDose: 1,
+    unit: "وعده",
+    level: "optional",
+    category: "غیرضروری",
+    timing: "morning",
+    offsetMin: 0,
+    defaultEnabled: false,
+    note: "پیشنهاد نمی‌شود. کسری کالری + پروتئین + تمرین مهم‌تر است."
+  },
+  {
+    id: "preworkout_blend",
+    name: "پری‌ورک‌اوت ترکیبی",
+    dose: "طبق برچسب",
+    defaultDose: 1,
+    unit: "اسکوپ",
+    level: "optional",
+    category: "ترکیبی",
+    timing: "pre",
+    offsetMin: -30,
+    defaultEnabled: false,
+    note: "اگر کافئین/سیترولین جدا مصرف می‌کنید، ممکن است تکراری باشد. برچسب را چک کنید."
+  }
+];
+
+// برچسب فارسی زمان‌بندی
+const TIMING_LABELS = {
+  pre: "قبل تمرین",
+  post: "بعد تمرین",
+  daily: "هر روز (زمان آزاد)",
+  morning: "صبح",
+  evening: "عصر / قبل خواب",
+  with_meal: "با وعده غذایی",
+  anytime: "هر زمان"
+};
+
+/** محاسبه ساعت پیشنهادی مصرف بر اساس ساعت تمرین کاربر */
+function computeSuppTime(timing, offsetMin, workoutTimeHHMM) {
+  if (!workoutTimeHHMM || timing === "daily" || timing === "anytime") {
+    if (timing === "morning") return "09:00";
+    if (timing === "evening") return "21:00";
+    if (timing === "with_meal") return "13:00";
+    return "10:00";
+  }
+  if (timing === "morning") return "09:00";
+  if (timing === "evening") return "21:00";
+  if (timing === "with_meal") return "13:00";
+
+  const [h, m] = workoutTimeHHMM.split(":").map(Number);
+  let total = h * 60 + m + (offsetMin || 0);
+  if (total < 0) total += 24 * 60;
+  total = total % (24 * 60);
+  const hh = String(Math.floor(total / 60)).padStart(2, "0");
+  const mm = String(total % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+// Rest seconds helper
+function parseRestSeconds(restStr) {
+  if (!restStr) return 90;
+  if (restStr.includes("2–3") || restStr.includes("2-3")) return 150;
+  if (restStr.includes("2 دقیقه") || restStr === "2 دقیقه") return 120;
+  if (restStr.includes("90")) return 90;
+  if (restStr.includes("75")) return 75;
+  if (restStr.includes("60–90") || restStr.includes("60-90")) return 75;
+  if (restStr.includes("60")) return 60;
+  if (restStr.includes("45")) return 45;
+  return 90;
+}
+
+// Parse rep range for double progression
+function parseRepRange(repsStr) {
+  if (!repsStr) return { min: 8, max: 12 };
+  const match = repsStr.match(/(\d+)\s*[–\-]\s*(\d+)/);
+  if (match) return { min: parseInt(match[1]), max: parseInt(match[2]) };
+  const single = parseInt(repsStr);
+  if (!isNaN(single)) return { min: single, max: single };
+  return { min: 8, max: 12 };
+}
+
+  </script>
+  <script>
+// ========== LOCAL STORAGE LAYER ==========
+const STORAGE_KEY = "bb_tracker_v2";
+
+function buildDefaultSupplements() {
+  return SUPPLEMENT_CATALOG.map(s => ({
+    id: s.id,
+    enabled: !!s.defaultEnabled,
+    dose: s.defaultDose,
+    time: null,
+    times: [],
+    reminder: !!s.defaultEnabled,
+    lastTaken: null,
+    autoTime: true
+  }));
+}
+
+const defaultState = () => ({
+  profile: {
+    name: "کاربر",
+    weight: 94,
+    height: 178,
+    age: 44,
+    gender: "male",
+    experienceYears: 30,
+    startDate: new Date().toISOString().slice(0, 10),
+    startWeight: 94,
+    startWaist: null,
+    limitations: ["l4l5"],
+    trainingGoals: ["shoulder", "arms", "fatloss", "retain"],
+    sessionsPerWeek: 4,
+    sessionDuration: 70,
+    equipment: "gym",
+    goals: {
+      protein: 180,
+      deficit: 400,
+      steps: 9000,
+      weightLossWeek: 0.45
+    },
+    setupDone: false
+  },
+  settings: {
+    workoutDays: [1, 2, 4, 5],
+    sessionOrder: [1, 2, 3, 4],
+    preferredWorkoutTime: "17:00",
+    reminderMinutesBefore: 30,
+    restTimerSound: true,
+    units: "kg"
+  },
+  customProgram: null,
+  supplements: buildDefaultSupplements(),
+  bodyLogs: [],
+  workoutHistory: [],
+  activeWorkout: null,
+  nutritionLogs: [],
+  supplementLogs: [],
+  exercisePRs: {},
+  lastExerciseData: {},
+  notificationsEnabled: false,
+  version: 2
+});
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      const old = localStorage.getItem("bb_tracker_v1");
+      if (old) {
+        try {
+          const parsed = JSON.parse(old);
+          const s = defaultState();
+          s.profile = { ...s.profile, ...(parsed.profile || {}) };
+          s.settings = { ...s.settings, ...(parsed.settings || {}) };
+          s.bodyLogs = parsed.bodyLogs || [];
+          s.workoutHistory = parsed.workoutHistory || [];
+          s.nutritionLogs = parsed.nutritionLogs || [];
+          s.exercisePRs = parsed.exercisePRs || {};
+          s.lastExerciseData = parsed.lastExerciseData || {};
+          const oldMap = {};
+          (parsed.supplements || []).forEach(x => { oldMap[x.id] = x; });
+          s.supplements = buildDefaultSupplements().map(ns => {
+            const o = oldMap[ns.id];
+            if (o) return { ...ns, enabled: o.enabled, dose: o.dose || ns.dose, time: o.time, reminder: o.reminder !== false };
+            return ns;
+          });
+          saveState(s);
+          return s;
+        } catch (e) { /* fallthrough */ }
+      }
+      const s = defaultState();
+      saveState(s);
+      return s;
+    }
+    const parsed = JSON.parse(raw);
+    const def = defaultState();
+    const existingIds = new Set((parsed.supplements || []).map(x => x.id));
+    let supps = parsed.supplements || def.supplements;
+    SUPPLEMENT_CATALOG.forEach(c => {
+      if (!existingIds.has(c.id)) {
+        supps.push({
+          id: c.id,
+          enabled: !!c.defaultEnabled,
+          dose: c.defaultDose,
+          time: null,
+          times: [],
+          reminder: false,
+          lastTaken: null,
+          autoTime: true
+        });
+      }
+    });
+    return {
+      ...def,
+      ...parsed,
+      profile: { ...def.profile, ...parsed.profile },
+      settings: { ...def.settings, ...parsed.settings },
+      supplements: supps,
+      customProgram: parsed.customProgram || null
+    };
+  } catch (e) {
+    console.error("Load error", e);
+    return defaultState();
+  }
+}
+
+function saveState(state) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error("Save error", e);
+  }
+}
+
+function updateState(updater) {
+  const state = loadState();
+  const next = typeof updater === "function" ? updater(state) : { ...state, ...updater };
+  saveState(next);
+  return next;
+}
+
+function getTodayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getWeekNumber(startDateStr) {
+  const start = new Date(startDateStr);
+  const now = new Date();
+  const diff = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+  return Math.min(99, Math.max(1, Math.floor(diff / 7) + 1));
+}
+
+function getDayOfWeek() {
+  return new Date().getDay();
+}
+
+function getTodaySessionId(state) {
+  const day = getDayOfWeek();
+  const map = {
+    1: state.settings.sessionOrder[0] || 1,
+    2: state.settings.sessionOrder[1] || 2,
+    4: state.settings.sessionOrder[2] || 3,
+    5: state.settings.sessionOrder[3] || 4
+  };
+  return map[day] || null;
+}
+
+function getActiveProgram(state) {
+  if (state && state.customProgram && state.customProgram.sessions && state.customProgram.sessions.length) {
+    return state.customProgram;
+  }
+  return PROGRAM;
+}
+
+function isWorkoutDay(state) {
+  return getTodaySessionId(state) !== null;
+}
+
+  </script>
+  <script>
+// ========== MAIN APP ==========
+let state = loadState();
+let currentView = "dashboard";
+let restTimerInterval = null;
+let restSecondsLeft = 0;
+let workoutStartTime = null;
+
+// ---------- Utils ----------
+function $(sel, root = document) { return root.querySelector(sel); }
+function $$(sel, root = document) { return [...root.querySelectorAll(sel)]; }
+
+function toast(msg, type = "") {
+  const el = $("#toast");
+  el.textContent = msg;
+  el.className = "toast " + type;
+  setTimeout(() => el.classList.add("hidden"), 2800);
+}
+
+function formatDate(d) {
+  if (!d) return "—";
+  const dt = new Date(d);
+  return dt.toLocaleDateString("fa-IR");
+}
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function volumeOfSets(sets) {
+  return sets.reduce((sum, s) => sum + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0);
+}
+
+// ---------- Navigation ----------
+function navigate(view) {
+  if (state.activeWorkout && view !== "active-workout") {
+    // allow leaving but keep active
+  }
+  currentView = view;
+  $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === view || (view === "active-workout" && b.dataset.view === "workouts")));
+  document.body.classList.toggle("workout-mode", view === "active-workout");
+  render();
+}
+
+$$(".nav-item").forEach(btn => {
+  btn.addEventListener("click", () => navigate(btn.dataset.view));
+});
+
+$("#btn-refresh")?.addEventListener("click", () => {
+  state = loadState();
+  toast("بروزرسانی شد", "success");
+  render();
+});
+
+$("#btn-settings-header")?.addEventListener("click", () => navigate("settings"));
+
+// ---------- Double Progression ----------
+function suggestNextWeight(exerciseId, lastSets, targetReps) {
+  if (!lastSets || !lastSets.length) return null;
+  const range = parseRepRange(targetReps);
+  const allHitTop = lastSets.every(s => Number(s.reps) >= range.max && (s.rir === undefined || Number(s.rir) <= 2));
+  if (allHitTop) {
+    const lastW = Number(lastSets[0].weight) || 0;
+    // small increase for isolation, larger for compounds
+    const isIsolation = /نشر|فلای|جلو بازو|پشت بازو|ساق|کیک/.test(
+      getActiveProgram(state).sessions.flatMap(s => s.exercises).find(e => e.id === exerciseId)?.name || ""
+    );
+    const bump = isIsolation ? Math.max(1, Math.round(lastW * 0.02)) : Math.max(2.5, Math.round(lastW * 0.025 * 2) / 2);
+    return { suggested: lastW + bump, reason: `سقف تکرار (${range.max}) با RIR مناسب رسیده — افزایش وزنه` };
+  }
+  return { suggested: Number(lastSets[0].weight) || 0, reason: "ادامه با همین وزنه تا رسیدن به سقف تکرار" };
+}
+
+// ---------- Render Router ----------
+function render() {
+  state = loadState();
+  const main = $("#main-content");
+  const titles = {
+    dashboard: "داشبورد",
+    workouts: "برنامه تمرینی",
+    supplements: "مکمل‌ها",
+    progress: "پیشرفت بدن",
+    more: "بیشتر",
+    "active-workout": "جلسه فعال",
+    history: "تاریخچه",
+    nutrition: "تغذیه",
+    settings: "تنظیمات",
+    reports: "گزارش‌ها",
+    coach: "مربی هوشمند",
+    "coach-prompt": "پرامپت AI",
+    "coach-import": "وارد کردن خروجی"
+  };
+  $("#page-title").textContent = titles[currentView] || "مربی";
+
+  // week progress
+  const week = getWeekNumber(state.profile.startDate);
+  const totalWeeks = (getActiveProgram(state).weeks) || 8;
+  $("#week-fill").style.width = `${Math.min(100, (week / totalWeeks) * 100)}%`;
+
+  if (currentView === "dashboard") main.innerHTML = renderDashboard();
+  else if (currentView === "workouts") main.innerHTML = renderWorkouts();
+  else if (currentView === "active-workout") main.innerHTML = renderActiveWorkout();
+  else if (currentView === "supplements") main.innerHTML = renderSupplements();
+  else if (currentView === "progress") main.innerHTML = renderProgress();
+  else if (currentView === "more") main.innerHTML = renderMore();
+  else if (currentView === "history") main.innerHTML = renderHistory();
+  else if (currentView === "nutrition") main.innerHTML = renderNutrition();
+  else if (currentView === "settings") main.innerHTML = renderSettings();
+  else if (currentView === "reports") main.innerHTML = renderReports();
+  else if (currentView === "coach") main.innerHTML = renderCoach();
+  else if (currentView === "coach-prompt") main.innerHTML = renderCoachPrompt();
+  else if (currentView === "coach-import") main.innerHTML = renderCoachImport();
+  else main.innerHTML = "<p>صفحه یافت نشد</p>";
+
+  bindViewEvents();
+}
+
+// ---------- DASHBOARD ----------
+function renderDashboard() {
+  const todaySessId = getTodaySessionId(state);
+  const todaySess = getActiveProgram(state).sessions.find(s => s.id === todaySessId);
+  const week = getWeekNumber(state.profile.startDate);
+  const doneSessions = state.workoutHistory.filter(w => w.completed).length;
+  const missedEstimate = Math.max(0, (week - 1) * 4 + (todaySess ? 0 : 0) - doneSessions);
+
+  const latestWeight = state.bodyLogs.length
+    ? [...state.bodyLogs].sort((a, b) => b.date.localeCompare(a.date))[0].weight
+    : state.profile.weight;
+
+  const weekWeights = state.bodyLogs
+    .filter(l => {
+      const d = new Date(l.date);
+      const now = new Date();
+      return (now - d) / 86400000 <= 7;
+    })
+    .map(l => l.weight);
+  const avgWeek = weekWeights.length
+    ? (weekWeights.reduce((a, b) => a + b, 0) / weekWeights.length).toFixed(1)
+    : latestWeight;
+
+  const latestWaist = state.bodyLogs.find(l => l.waist)?.waist || "—";
+
+  // today supplements
+  const today = getTodayStr();
+  const todaySuppLogs = state.supplementLogs.filter(l => l.date === today);
+  const enabledSupps = state.supplements.filter(s => s.enabled);
+
+  // active workout resume
+  const hasActive = !!state.activeWorkout;
+
+  const lims = state.profile.limitations || [];
+  const safetyText = lims.includes("l4l5")
+    ? "⚠️ محدودیت L4-L5 فعال است. از حرکات ممنوعه استفاده نکنید. در صورت درد تیرکشنده، بی‌حسی یا گزگز حرکت را متوقف کنید."
+    : (lims.length ? "⚠️ محدودیت‌های ثبت‌شده را در تمرین رعایت کنید." : "برای ساخت برنامه شخصی از بخش مربی هوشمند استفاده کنید.");
+
+  let html = `
+    <div class="safety-banner">${safetyText}</div>
+    <div class="card" style="border-color:var(--accent)">
+      <div class="card-title">🧠 مربی هوشمند</div>
+      <p style="font-size:0.9rem;margin-bottom:10px">مشخصات و اهدافت را وارد کن → پرامپت بگیر → به AI بده → خروجی را وارد کن تا برنامه و مکمل‌ها خودکار تنظیم شوند.</p>
+      <button class="btn btn-primary btn-block" onclick="navigate('coach')">شروع / به‌روزرسانی برنامه با AI</button>
+    </div>
+
+    ${hasActive ? `
+      <div class="card" style="border-color:var(--primary)">
+        <div class="card-title">جلسه ناتمام</div>
+        <p style="margin-bottom:10px">${getActiveProgram(state).sessions.find(s => s.id === state.activeWorkout.sessionId)?.name || ""}</p>
+        <button class="btn btn-primary btn-block" onclick="resumeWorkout()">ادامه جلسه</button>
+      </div>
+    ` : ""}
+
+    <div class="card ${todaySess ? "today" : ""}">
+      <div class="card-title">جلسه امروز</div>
+      ${todaySess ? `
+        <div class="session-name" style="color:${todaySess.color}">${todaySess.name}</div>
+        <div class="session-muscles">${todaySess.muscles.join(" · ")}</div>
+        <button class="btn btn-primary btn-block mt-2" onclick="startWorkout(${todaySess.id})">شروع تمرین</button>
+      ` : `
+        <p class="text-muted">امروز روز تمرین برنامه‌ریزی‌شده نیست.</p>
+        <p class="text-muted" style="font-size:0.85rem">می‌توانید از بخش تمرین یک جلسه را دستی شروع کنید.</p>
+      `}
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">وزن فعلی</div>
+        <div class="card-value">${latestWeight} <small style="font-size:0.9rem">کیلو</small></div>
+      </div>
+      <div class="card">
+        <div class="card-title">میانگین هفتگی</div>
+        <div class="card-value">${avgWeek}</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">دور کمر</div>
+        <div class="card-value">${latestWaist}${latestWaist !== "—" ? " سم" : ""}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">هفته برنامه</div>
+        <div class="card-value">${week}<small style="font-size:0.9rem"> / ۸</small></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${(week/8)*100}%"></div></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">جلسات انجام‌شده</div>
+        <div class="card-value text-success">${doneSessions}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">مکمل‌های امروز</div>
+        <div class="card-value">${todaySuppLogs.filter(l => l.taken).length} / ${enabledSupps.length}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">مکمل‌های امروز</div>
+      ${enabledSupps.map(s => {
+        const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+        const taken = todaySuppLogs.some(l => l.suppId === s.id && l.taken);
+        return `
+          <div class="supp-item">
+            <div class="supp-icon">${taken ? "✅" : "💊"}</div>
+            <div class="supp-info">
+              <div class="supp-name">${def?.name || s.id}</div>
+              <div class="supp-dose">${s.dose} ${def?.unit || ""} · ${s.times?.join("، ") || s.time}</div>
+            </div>
+            ${!taken ? `<button class="btn btn-sm btn-success" onclick="markSuppTaken('${s.id}')">مصرف شد</button>` : `<span class="tag tag-success">انجام شد</span>`}
+          </div>`;
+      }).join("") || "<p class='text-muted'>مکملی فعال نیست</p>"}
+    </div>
+
+    <div class="card">
+      <div class="card-title">اهداف هفتگی حجم</div>
+      <div style="font-size:0.85rem;line-height:1.8">
+        🔥 سرشانه: ۱۸–۱۹ ست · جلوبازو: ۱۱ · پشت‌بازو: ۱۲<br>
+        پشت: ۱۲ · سینه: ۸ · پا: ۱۳–۱۵ · میان‌تنه: ۶
+      </div>
+    </div>
+
+    ${week >= 6 ? `
+      <div class="card" style="border-color:var(--warning)">
+        <div class="card-title">⏰ ارزیابی دوره‌ای</div>
+        <p>زمان ارزیابی برنامه و بررسی پیشرفت فرا رسیده است.</p>
+        <button class="btn btn-secondary btn-block mt-1" onclick="navigate('reports')">مشاهده گزارش</button>
+      </div>
+    ` : ""}
+  `;
+  return html;
+}
+
+// ---------- WORKOUTS LIST ----------
+function renderWorkouts() {
+  return `
+    <div class="safety-banner">حرکات ممنوع: اسکوات هالتر سنگین، ددلیفت، RDL، Good Morning، Bent-over Row سنگین، کرانچ سنگین، چرخش سنگین تنه.</div>
+    ${getActiveProgram(state).sessions.map(s => `
+      <div class="session-card" onclick="showSessionDetail(${s.id})">
+        <div class="session-header">
+          <div>
+            <div class="session-name" style="color:${s.color}">${s.shortName}: ${s.name}</div>
+            <div class="session-muscles">${s.muscles.join(" · ")} · ${s.exercises.length} حرکت</div>
+          </div>
+          <span class="tag tag-primary">${s.exercises.reduce((a, e) => a + e.sets, 0)} ست</span>
+        </div>
+        ${s.note ? `<p class="text-muted" style="font-size:0.85rem">${s.note}</p>` : ""}
+        <button class="btn btn-primary btn-sm mt-1" onclick="event.stopPropagation();startWorkout(${s.id})">شروع این جلسه</button>
+      </div>
+    `).join("")}
+    <button class="btn btn-secondary btn-block mt-2" onclick="navigate('history')">تاریخچه جلسات</button>
+  `;
+}
+
+function showSessionDetail(id) {
+  const s = getActiveProgram(state).sessions.find(x => x.id === id);
+  if (!s) return;
+  const html = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal-sheet">
+        <div class="modal-title" style="color:${s.color}">${s.name}</div>
+        <p class="text-muted mb-2">${s.warmUp || ""}</p>
+        ${s.exercises.map((e, i) => `
+          <div class="exercise-item">
+            <div class="exercise-name">${i + 1}. ${e.name}</div>
+            <div class="exercise-meta">
+              <span class="tag tag-accent">${e.muscle}</span>
+              <span>${e.sets} ست × ${e.reps}</span>
+              <span>استراحت ${e.rest}</span>
+              <span>RIR ${e.rir}</span>
+            </div>
+            ${e.note ? `<p style="font-size:0.8rem;margin-top:4px;color:var(--text-muted)">${e.note}</p>` : ""}
+            ${e.safety ? `<p style="font-size:0.8rem;color:var(--danger)">${e.safety}</p>` : ""}
+          </div>
+        `).join("")}
+        <button class="btn btn-primary btn-block mt-2" onclick="closeModal();startWorkout(${s.id})">شروع جلسه</button>
+        <button class="btn btn-secondary btn-block mt-1" onclick="closeModal()">بستن</button>
+      </div>
+    </div>`;
+  $("#modal-root").innerHTML = html;
+}
+
+function closeModal() {
+  $("#modal-root").innerHTML = "";
+}
+
+// ---------- START / ACTIVE WORKOUT ----------
+function startWorkout(sessionId) {
+  if (state.activeWorkout && state.activeWorkout.sessionId !== sessionId) {
+    if (!confirm("یک جلسه ناتمام دارید. آن را لغو و جلسه جدید شروع شود؟")) return;
+  }
+  const session = getActiveProgram(state).sessions.find(s => s.id === sessionId);
+  const exercises = session.exercises.map(ex => {
+    const last = state.lastExerciseData[ex.id] || [];
+    const suggestion = suggestNextWeight(ex.id, last, ex.reps);
+    return {
+      ...ex,
+      setsData: Array.from({ length: ex.sets }, (_, i) => ({
+        weight: last[i]?.weight ?? suggestion?.suggested ?? "",
+        reps: "",
+        rir: "",
+        done: false,
+        pain: false,
+        note: ""
+      })),
+      lastPerformance: last,
+      suggestion
+    };
+  });
+
+  state.activeWorkout = {
+    sessionId,
+    startedAt: new Date().toISOString(),
+    exercises,
+    currentExerciseIndex: 0,
+    notes: ""
+  };
+  saveState(state);
+  workoutStartTime = Date.now();
+  navigate("active-workout");
+}
+
+function resumeWorkout() {
+  if (!state.activeWorkout) return;
+  workoutStartTime = Date.now() - (state.activeWorkout.elapsedMs || 0);
+  navigate("active-workout");
+}
+
+function renderActiveWorkout() {
+  const w = state.activeWorkout;
+  if (!w) {
+    navigate("workouts");
+    return "<p>جلسه‌ای فعال نیست</p>";
+  }
+  const session = getActiveProgram(state).sessions.find(s => s.id === w.sessionId);
+  const elapsed = Math.floor((Date.now() - (workoutStartTime || Date.now())) / 1000);
+
+  let html = `
+    <div class="workout-header">
+      <div class="flex-between">
+        <div>
+          <div style="font-weight:700;color:${session.color}">${session.shortName}</div>
+          <div class="text-muted" style="font-size:0.85rem">${session.name}</div>
+        </div>
+        <div class="timer-display" id="workout-timer">${formatTime(elapsed)}</div>
+      </div>
+      <div class="progress-bar mt-1">
+        <div class="progress-fill" style="width:${(w.exercises.filter(e => e.setsData.every(s => s.done)).length / w.exercises.length) * 100}%"></div>
+      </div>
+    </div>
+
+    <div id="rest-timer-box" class="rest-timer ${restSecondsLeft > 0 ? "" : "hidden"}">
+      <div class="text-muted">استراحت</div>
+      <div class="time" id="rest-time">${formatTime(restSecondsLeft)}</div>
+      <div class="flex gap-1 mt-1" style="justify-content:center">
+        <button class="btn btn-sm btn-secondary" onclick="addRest(30)">+۳۰ث</button>
+        <button class="btn btn-sm btn-secondary" onclick="skipRest()">رد کردن</button>
+      </div>
+    </div>
+  `;
+
+  w.exercises.forEach((ex, ei) => {
+    const lastStr = ex.lastPerformance?.length
+      ? ex.lastPerformance.map(s => `${s.weight}×${s.reps}`).join(" · ")
+      : "—";
+    html += `
+      <div class="card" style="border-color:${ex.setsData.every(s => s.done) ? "var(--success)" : "var(--border)"}">
+        <div class="flex-between mb-1">
+          <div class="exercise-name">${ei + 1}. ${ex.name}</div>
+          <span class="tag tag-accent">${ex.muscle}</span>
+        </div>
+        <div class="exercise-meta mb-1">
+          <span>${ex.sets}×${ex.reps}</span>
+          <span>استراحت ${ex.rest}</span>
+          <span>RIR ${ex.rir}</span>
+        </div>
+        ${ex.note ? `<p style="font-size:0.8rem;color:var(--text-muted)">${ex.note}</p>` : ""}
+        ${ex.safety ? `<p style="font-size:0.8rem;color:var(--danger)">⚠ ${ex.safety}</p>` : ""}
+        <p style="font-size:0.8rem;color:var(--primary)">آخرین: ${lastStr}</p>
+        ${ex.suggestion ? `<p style="font-size:0.8rem;color:var(--warning)">${ex.suggestion.reason} → ${ex.suggestion.suggested} کیلو</p>` : ""}
+
+        <div class="set-row" style="font-size:0.75rem;color:var(--text-muted);margin-top:8px">
+          <div></div><div class="text-center">وزن</div><div class="text-center">تکرار</div><div class="text-center">RIR</div><div></div>
+        </div>
+        ${ex.setsData.map((set, si) => `
+          <div class="set-row ${set.done ? "done" : ""}" data-ei="${ei}" data-si="${si}">
+            <div class="set-num">${si + 1}</div>
+            <input type="number" inputmode="decimal" placeholder="وزن" value="${set.weight}" data-field="weight"
+              onchange="updateSet(${ei},${si},'weight',this.value)" ${set.done ? "readonly" : ""} />
+            <input type="number" inputmode="numeric" placeholder="تکرار" value="${set.reps}" data-field="reps"
+              onchange="updateSet(${ei},${si},'reps',this.value)" ${set.done ? "readonly" : ""} />
+            <input type="number" inputmode="numeric" placeholder="RIR" value="${set.rir}" data-field="rir"
+              onchange="updateSet(${ei},${si},'rir',this.value)" ${set.done ? "readonly" : ""} />
+            <button class="check-btn ${set.done ? "checked" : ""}" onclick="toggleSetDone(${ei},${si})">${set.done ? "✓" : "○"}</button>
+          </div>
+        `).join("")}
+        <div class="flex gap-1 mt-1">
+          <button class="btn btn-sm btn-secondary" onclick="flagPain(${ei})">⚠ درد/ناراحتی</button>
+          <button class="btn btn-sm btn-secondary" onclick="startRestFor(${ei})">تایمر استراحت</button>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `
+    <div class="form-group mt-2">
+      <label class="form-label">یادداشت جلسه</label>
+      <textarea class="form-input" rows="2" id="session-note" onchange="state.activeWorkout.notes=this.value;saveState(state)">${w.notes || ""}</textarea>
+    </div>
+    <button class="btn btn-success btn-lg btn-block" onclick="finishWorkout()">پایان و ذخیره جلسه</button>
+    <button class="btn btn-secondary btn-block mt-1" onclick="cancelWorkout()">لغو جلسه</button>
+  `;
+
+  // live timer
+  setTimeout(() => {
+    if (currentView !== "active-workout") return;
+    const t = $("#workout-timer");
+    if (t) {
+      const tick = () => {
+        if (currentView !== "active-workout") return;
+        const el = Math.floor((Date.now() - (workoutStartTime || Date.now())) / 1000);
+        t.textContent = formatTime(el);
+        requestAnimationFrame(() => setTimeout(tick, 1000));
+      };
+      tick();
+    }
+  }, 100);
+
+  return html;
+}
+
+function updateSet(ei, si, field, value) {
+  if (!state.activeWorkout) return;
+  state.activeWorkout.exercises[ei].setsData[si][field] = value;
+  saveState(state);
+}
+
+function toggleSetDone(ei, si) {
+  if (!state.activeWorkout) return;
+  const set = state.activeWorkout.exercises[ei].setsData[si];
+  if (!set.done && (!set.weight || !set.reps)) {
+    toast("وزن و تکرار را وارد کنید", "warning");
+    return;
+  }
+  set.done = !set.done;
+  saveState(state);
+  if (set.done) {
+    const restSec = parseRestSeconds(state.activeWorkout.exercises[ei].rest);
+    startRestTimer(restSec);
+  }
+  render();
+}
+
+function flagPain(ei) {
+  if (!state.activeWorkout) return;
+  state.activeWorkout.exercises[ei].painFlag = true;
+  saveState(state);
+  toast("⚠ درد ثبت شد. اگر تیرکشنده/بی‌حسی/گزگز است حرکت را متوقف کنید و ارزیابی کنید.", "danger");
+  if (confirm("آیا درد تیرکشنده به پا، بی‌حسی، گزگز یا ضعف دارید؟\nدر این صورت حرکت را همین حالا متوقف کنید.")) {
+    // mark remaining sets skipped conceptually
+    state.activeWorkout.exercises[ei].setsData.forEach(s => { if (!s.done) s.note = "متوقف به دلیل درد"; });
+    saveState(state);
+    render();
+  }
+}
+
+function startRestFor(ei) {
+  const restSec = parseRestSeconds(state.activeWorkout.exercises[ei].rest);
+  startRestTimer(restSec);
+}
+
+function startRestTimer(seconds) {
+  clearInterval(restTimerInterval);
+  restSecondsLeft = seconds;
+  const box = $("#rest-timer-box");
+  if (box) box.classList.remove("hidden");
+  const update = () => {
+    const el = $("#rest-time");
+    if (el) el.textContent = formatTime(restSecondsLeft);
+    if (restSecondsLeft <= 0) {
+      clearInterval(restTimerInterval);
+      if (box) box.classList.add("hidden");
+      toast("استراحت تمام شد — ست بعدی", "success");
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+  };
+  update();
+  restTimerInterval = setInterval(() => {
+    restSecondsLeft--;
+    update();
+  }, 1000);
+}
+
+function addRest(sec) {
+  restSecondsLeft += sec;
+  const el = $("#rest-time");
+  if (el) el.textContent = formatTime(restSecondsLeft);
+}
+
+function skipRest() {
+  restSecondsLeft = 0;
+  clearInterval(restTimerInterval);
+  const box = $("#rest-timer-box");
+  if (box) box.classList.add("hidden");
+}
+
+function finishWorkout() {
+  if (!state.activeWorkout) return;
+  const w = state.activeWorkout;
+  const durationSec = Math.floor((Date.now() - (workoutStartTime || Date.now())) / 1000);
+  const completedSets = w.exercises.flatMap(e => e.setsData.filter(s => s.done));
+  const totalVolume = volumeOfSets(completedSets);
+
+  // update lastExerciseData & PRs
+  w.exercises.forEach(ex => {
+    const doneSets = ex.setsData.filter(s => s.done && s.weight && s.reps);
+    if (doneSets.length) {
+      state.lastExerciseData[ex.id] = doneSets.map(s => ({
+        weight: Number(s.weight),
+        reps: Number(s.reps),
+        rir: s.rir !== "" ? Number(s.rir) : null
+      }));
+      const best = doneSets.reduce((a, s) => {
+        const vol = Number(s.weight) * Number(s.reps);
+        return vol > (a.vol || 0) ? { weight: Number(s.weight), reps: Number(s.reps), vol } : a;
+      }, {});
+      const prev = state.exercisePRs[ex.id];
+      if (!prev || best.vol > (prev.volume || 0)) {
+        state.exercisePRs[ex.id] = { weight: best.weight, reps: best.reps, volume: best.vol, date: getTodayStr() };
+      }
+    }
+  });
+
+  const record = {
+    id: "w_" + Date.now(),
+    sessionId: w.sessionId,
+    date: getTodayStr(),
+    startedAt: w.startedAt,
+    finishedAt: new Date().toISOString(),
+    durationSec,
+    completed: true,
+    notes: w.notes || $("#session-note")?.value || "",
+    exercises: w.exercises.map(ex => ({
+      id: ex.id,
+      name: ex.name,
+      muscle: ex.muscle,
+      sets: ex.setsData.filter(s => s.done).map(s => ({
+        weight: Number(s.weight) || 0,
+        reps: Number(s.reps) || 0,
+        rir: s.rir !== "" ? Number(s.rir) : null,
+        pain: !!ex.painFlag
+      })),
+      painFlag: !!ex.painFlag
+    })),
+    totalSets: completedSets.length,
+    totalVolume
+  };
+
+  state.workoutHistory.unshift(record);
+  state.activeWorkout = null;
+  saveState(state);
+  clearInterval(restTimerInterval);
+  toast(`جلسه ذخیره شد · ${completedSets.length} ست · حجم ${Math.round(totalVolume)}`, "success");
+  navigate("dashboard");
+}
+
+function cancelWorkout() {
+  if (!confirm("جلسه لغو شود؟ داده‌های ثبت‌شده از بین می‌رود.")) return;
+  state.activeWorkout = null;
+  saveState(state);
+  clearInterval(restTimerInterval);
+  navigate("workouts");
+}
+
+// ---------- SUPPLEMENTS ----------
+function getSuppEffectiveTime(s, def) {
+  const wt = state.settings.preferredWorkoutTime || "17:00";
+  if (s.autoTime !== false && (s.time == null || s.time === "")) {
+    return computeSuppTime(def.timing, def.offsetMin, wt);
+  }
+  return s.time || (s.times && s.times[0]) || computeSuppTime(def.timing, def.offsetMin, wt);
+}
+
+function renderSupplements() {
+  const today = getTodayStr();
+  const wt = state.settings.preferredWorkoutTime || "17:00";
+  const levels = [
+    { key: "A", title: "سطح A — شواهد قوی / ضروری" },
+    { key: "B", title: "سطح B — مفید (اختیاری)" },
+    { key: "C", title: "سطح C — در صورت نیاز" },
+    { key: "optional", title: "معمولاً غیرضروری (پیش‌فرض خاموش)" }
+  ];
+  let html = `
+    <div class="card">
+      <div class="card-title">ساعت تمرین شما</div>
+      <p style="font-size:0.9rem;margin-bottom:8px">زمان‌بندی خودکار مکمل‌ها بر اساس این ساعت محاسبه می‌شود.</p>
+      <div class="flex gap-1">
+        <input class="form-input" type="time" id="supp-workout-time" value="${wt}" style="flex:1" />
+        <button class="btn btn-primary" onclick="updateWorkoutTimeFromSupp()">اعمال</button>
+      </div>
+      <p class="text-muted mt-1" style="font-size:0.8rem">الان: ${wt} — قبل تمرین ≈ ${computeSuppTime("pre", -45, wt)} · بعد تمرین ≈ ${computeSuppTime("post", 30, wt)}</p>
+    </div>
+    <div class="card">
+      <div class="card-title">برنامه امروز (مکمل‌های روشن)</div>
+      ${state.supplements.filter(s => s.enabled).map(s => {
+        const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+        if (!def) return "";
+        const t = getSuppEffectiveTime(s, def);
+        const taken = state.supplementLogs.some(l => l.date === today && l.suppId === s.id && l.taken);
+        return `<div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.9rem">
+          <span>${taken ? "✅" : "⏰"} <strong>${t}</strong> — ${def.name} (${s.dose} ${def.unit})</span>
+          ${!taken ? `<button class="btn btn-sm btn-success" onclick="markSuppTaken('${s.id}')">مصرف</button>` : ""}
+        </div>`;
+      }).join("") || "<p class='text-muted'>هیچ مکملی روشن نیست</p>"}
+    </div>
+  `;
+  levels.forEach(lv => {
+    const items = state.supplements.filter(s => {
+      const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+      return def && def.level === lv.key;
+    });
+    if (!items.length) return;
+    html += `<div class="card"><div class="card-title">${lv.title}</div>
+      ${items.map(s => renderSuppCard(s, today)).join("")}
+    </div>`;
+  });
+  html += `
+    <button class="btn btn-secondary btn-block mt-1" onclick="showSuppSettings()">تنظیم دستی دوز و ساعت</button>
+    <button class="btn btn-secondary btn-block mt-1" onclick="recalcAllSuppTimes()">بازت محاسبه همه زمان‌ها از روی ساعت تمرین</button>
+  `;
+  return html;
+}
+
+function renderSuppCard(s, today) {
+  const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+  if (!def) return "";
+  const taken = state.supplementLogs.some(l => l.date === today && l.suppId === s.id && l.taken);
+  const t = getSuppEffectiveTime(s, def);
+  const timingLabel = TIMING_LABELS[def.timing] || def.timing;
+  return `
+    <div class="supp-item">
+      <div class="supp-icon">${s.enabled ? (taken ? "✅" : "💊") : "⏸️"}</div>
+      <div class="supp-info">
+        <div class="supp-name">${def.name}</div>
+        <div class="supp-dose">${s.dose} ${def.unit} · ${timingLabel} · <strong>${t}</strong>
+          ${!s.enabled ? " (خاموش)" : ""} ${s.autoTime === false ? " (دستی)" : " (خودکار)"}
+        </div>
+        <div style="font-size:0.75rem;color:var(--text-muted)">${def.note}</div>
+      </div>
+      <div class="supp-actions" style="flex-direction:column">
+        ${s.enabled && !taken ? `<button class="btn btn-sm btn-success" onclick="markSuppTaken('${s.id}')">مصرف</button>` : ""}
+        <button class="btn btn-sm btn-secondary" onclick="toggleSupp('${s.id}')">${s.enabled ? "خاموش" : "روشن"}</button>
+      </div>
+    </div>`;
+}
+
+function markSuppTaken(id) {
+  const today = getTodayStr();
+  state.supplementLogs = state.supplementLogs.filter(l => !(l.date === today && l.suppId === id));
+  state.supplementLogs.push({ date: today, suppId: id, time: new Date().toTimeString().slice(0, 5), taken: true });
+  const s = state.supplements.find(x => x.id === id);
+  if (s) s.lastTaken = new Date().toISOString();
+  saveState(state);
+  toast("مصرف ثبت شد", "success");
+  render();
+}
+
+function toggleSupp(id) {
+  const s = state.supplements.find(x => x.id === id);
+  if (s) {
+    s.enabled = !s.enabled;
+    s.reminder = s.enabled;
+    saveState(state);
+    render();
+  }
+}
+
+function updateWorkoutTimeFromSupp() {
+  const v = $("#supp-workout-time")?.value;
+  if (!v) return;
+  state.settings.preferredWorkoutTime = v;
+  // auto-recalc times for autoTime supplements
+  state.supplements.forEach(s => {
+    const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+    if (!def) return;
+    if (s.autoTime !== false) {
+      s.time = computeSuppTime(def.timing, def.offsetMin, v);
+      s.times = [s.time];
+    }
+  });
+  saveState(state);
+  toast("ساعت تمرین و زمان مکمل‌ها به‌روز شد", "success");
+  render();
+}
+
+function recalcAllSuppTimes() {
+  const v = state.settings.preferredWorkoutTime || "17:00";
+  state.supplements.forEach(s => {
+    const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+    if (!def) return;
+    s.autoTime = true;
+    s.time = computeSuppTime(def.timing, def.offsetMin, v);
+    s.times = [s.time];
+  });
+  saveState(state);
+  toast("همه زمان‌ها از نو محاسبه شد", "success");
+  render();
+}
+
+function showSuppSettings() {
+  const wt = state.settings.preferredWorkoutTime || "17:00";
+  const html = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal-sheet">
+        <div class="modal-title">دوز و ساعت مکمل‌ها</div>
+        <p class="text-muted" style="font-size:0.85rem;margin-bottom:12px">اگر ساعت را خالی بگذارید، از روی ساعت تمرین (${wt}) خودکار حساب می‌شود.</p>
+        ${state.supplements.map(s => {
+          const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+          if (!def) return "";
+          const t = getSuppEffectiveTime(s, def);
+          return `
+            <div class="form-group">
+              <label class="form-label">${def.name} <span class="tag tag-accent">${TIMING_LABELS[def.timing] || ""}</span></label>
+              <div class="grid-2">
+                <input class="form-input" type="number" step="0.1" value="${s.dose}" id="dose-${s.id}" placeholder="دوز" />
+                <input class="form-input" type="time" value="${s.autoTime === false ? (s.time || t) : t}" id="time-${s.id}" />
+              </div>
+              <label style="font-size:0.8rem;display:flex;align-items:center;gap:6px;margin-top:4px">
+                <input type="checkbox" id="auto-${s.id}" ${s.autoTime !== false ? "checked" : ""} /> زمان خودکار از ساعت تمرین
+              </label>
+            </div>`;
+        }).join("")}
+        <button class="btn btn-primary btn-block" onclick="saveSuppSettings()">ذخیره</button>
+        <button class="btn btn-secondary btn-block mt-1" onclick="closeModal()">بستن</button>
+      </div>
+    </div>`;
+  $("#modal-root").innerHTML = html;
+}
+
+function saveSuppSettings() {
+  state.supplements.forEach(s => {
+    const doseEl = document.getElementById("dose-" + s.id);
+    const timeEl = document.getElementById("time-" + s.id);
+    const autoEl = document.getElementById("auto-" + s.id);
+    if (doseEl) s.dose = Number(doseEl.value) || s.dose;
+    if (autoEl) s.autoTime = autoEl.checked;
+    if (timeEl && !s.autoTime) {
+      s.time = timeEl.value;
+      s.times = [timeEl.value];
+    } else if (s.autoTime) {
+      const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+      if (def) {
+        s.time = computeSuppTime(def.timing, def.offsetMin, state.settings.preferredWorkoutTime || "17:00");
+        s.times = [s.time];
+      }
+    }
+  });
+  saveState(state);
+  closeModal();
+  toast("تنظیمات مکمل ذخیره شد", "success");
+  render();
+}
+
+// ---------- PROGRESS / BODY ----------
+function renderProgress() {
+  const logs = [...state.bodyLogs].sort((a, b) => b.date.localeCompare(a.date));
+  const latest = logs[0];
+  return `
+    <div class="card">
+      <div class="card-title">ثبت اندازه‌های جدید</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">وزن (کیلو)</label>
+          <input class="form-input" type="number" step="0.1" id="log-weight" value="${state.profile.weight}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">دور کمر (سم)</label>
+          <input class="form-input" type="number" step="0.1" id="log-waist" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">دور بازو</label>
+          <input class="form-input" type="number" step="0.1" id="log-arm" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">دور شانه</label>
+          <input class="form-input" type="number" step="0.1" id="log-shoulder" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">دور سینه</label>
+          <input class="form-input" type="number" step="0.1" id="log-chest" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">دور ران</label>
+          <input class="form-input" type="number" step="0.1" id="log-thigh" />
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="saveBodyLog()">ثبت</button>
+    </div>
+
+    ${logs.length ? `
+      <div class="card">
+        <div class="card-title">روند وزن (آخرین ثبت‌ها)</div>
+        <div class="chart-container">
+          <div class="chart-bars">
+            ${logs.slice(0, 12).reverse().map(l => {
+              const max = Math.max(...logs.map(x => x.weight || 0), 1);
+              const h = ((l.weight || 0) / max) * 100;
+              return `<div class="chart-bar" style="height:${Math.max(h, 5)}%"><span>${l.weight}</span></div>`;
+            }).join("")}
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">تاریخچه اندازه‌ها</div>
+        ${logs.slice(0, 15).map(l => `
+          <div class="history-item">
+            <div class="flex-between">
+              <strong>${formatDate(l.date)}</strong>
+              <span>${l.weight} کیلو</span>
+            </div>
+            <div class="text-muted" style="font-size:0.85rem">
+              ${l.waist ? `کمر ${l.waist}` : ""} ${l.arm ? `· بازو ${l.arm}` : ""} ${l.shoulder ? `· شانه ${l.shoulder}` : ""}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    ` : `<div class="empty-state"><div class="icon">📏</div><p>هنوز اندازه‌ای ثبت نشده</p></div>`}
+  `;
+}
+
+function saveBodyLog() {
+  const weight = Number($("#log-weight")?.value);
+  if (!weight) { toast("وزن را وارد کنید", "warning"); return; }
+  const log = {
+    date: getTodayStr(),
+    weight,
+    waist: Number($("#log-waist")?.value) || null,
+    arm: Number($("#log-arm")?.value) || null,
+    shoulder: Number($("#log-shoulder")?.value) || null,
+    chest: Number($("#log-chest")?.value) || null,
+    thigh: Number($("#log-thigh")?.value) || null
+  };
+  state.bodyLogs = state.bodyLogs.filter(l => l.date !== log.date);
+  state.bodyLogs.push(log);
+  state.profile.weight = weight;
+  saveState(state);
+  toast("اندازه‌ها ذخیره شد", "success");
+  render();
+}
+
+// ---------- HISTORY ----------
+function renderHistory() {
+  const list = state.workoutHistory;
+  if (!list.length) return `<div class="empty-state"><div class="icon">📋</div><p>هنوز جلسه‌ای ثبت نشده</p></div>`;
+  return list.map(w => {
+    const sess = getActiveProgram(state).sessions.find(s => s.id === w.sessionId);
+    return `
+      <div class="card">
+        <div class="flex-between">
+          <div>
+            <div style="font-weight:700;color:${sess?.color || "var(--text)"}">${sess?.name || "جلسه"}</div>
+            <div class="text-muted" style="font-size:0.85rem">${formatDate(w.date)} · ${formatTime(w.durationSec || 0)} · ${w.totalSets} ست</div>
+          </div>
+          <span class="tag tag-success">${Math.round(w.totalVolume || 0)} حجم</span>
+        </div>
+        ${w.notes ? `<p style="font-size:0.85rem;margin-top:6px">${w.notes}</p>` : ""}
+        <div style="margin-top:8px;font-size:0.8rem">
+          ${w.exercises.filter(e => e.sets.length).map(e =>
+            `<div>${e.name}: ${e.sets.map(s => `${s.weight}×${s.reps}`).join(", ")}</div>`
+          ).join("")}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+// ---------- NUTRITION ----------
+function renderNutrition() {
+  const today = getTodayStr();
+  const log = state.nutritionLogs.find(l => l.date === today) || { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  const targetP = state.profile.goals.protein || 180;
+  return `
+    <div class="card">
+      <div class="card-title">اهداف تغذیه (کات)</div>
+      <p style="font-size:0.9rem;line-height:1.7">
+        کسری کالری: ${PROGRAM.nutritionTargets.calorieDeficit}<br>
+        پروتئین: ${PROGRAM.nutritionTargets.protein}<br>
+        کاهش وزن هدف: ${PROGRAM.nutritionTargets.weightLossPerWeek}/هفته<br>
+        قدم روزانه: ${PROGRAM.nutritionTargets.steps}
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-title">ثبت امروز (${formatDate(today)})</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">کالری</label>
+          <input class="form-input" type="number" id="nut-cal" value="${log.calories || ""}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">پروتئین (گرم)</label>
+          <input class="form-input" type="number" id="nut-pro" value="${log.protein || ""}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">کربوهیدرات</label>
+          <input class="form-input" type="number" id="nut-carb" value="${log.carbs || ""}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">چربی</label>
+          <input class="form-input" type="number" id="nut-fat" value="${log.fat || ""}" />
+        </div>
+      </div>
+      <div class="progress-bar mb-1"><div class="progress-fill" style="width:${Math.min(100, ((log.protein || 0) / targetP) * 100)}%"></div></div>
+      <p class="text-muted" style="font-size:0.85rem">پروتئین: ${log.protein || 0} / ${targetP} گرم</p>
+      <button class="btn btn-primary btn-block mt-1" onclick="saveNutrition()">ذخیره تغذیه امروز</button>
+    </div>
+  `;
+}
+
+function saveNutrition() {
+  const today = getTodayStr();
+  const entry = {
+    date: today,
+    calories: Number($("#nut-cal")?.value) || 0,
+    protein: Number($("#nut-pro")?.value) || 0,
+    carbs: Number($("#nut-carb")?.value) || 0,
+    fat: Number($("#nut-fat")?.value) || 0
+  };
+  state.nutritionLogs = state.nutritionLogs.filter(l => l.date !== today);
+  state.nutritionLogs.push(entry);
+  saveState(state);
+  toast("تغذیه ذخیره شد", "success");
+  render();
+}
+
+// ---------- SETTINGS ----------
+function renderSettings() {
+  const lims = state.profile.limitations || [];
+  return `
+    <div class="card">
+      <div class="card-title">پروفایل</div>
+      <div class="form-group">
+        <label class="form-label">نام</label>
+        <input class="form-input" id="set-name" value="${state.profile.name}" />
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">وزن فعلی</label>
+          <input class="form-input" type="number" step="0.1" id="set-weight" value="${state.profile.weight}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">هدف پروتئین</label>
+          <input class="form-input" type="number" id="set-protein" value="${state.profile.goals.protein}" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">تاریخ شروع برنامه</label>
+        <input class="form-input" type="date" id="set-start" value="${state.profile.startDate}" />
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">زمان تمرین</div>
+      <input class="form-input" type="time" id="set-wtime" value="${state.settings.preferredWorkoutTime}" />
+      <div class="form-group mt-1">
+        <label class="form-label">یادآوری چند دقیقه قبل</label>
+        <input class="form-input" type="number" id="set-remind" value="${state.settings.reminderMinutesBefore}" />
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">محدودیت‌های ثبت‌شده</div>
+      <p style="font-size:0.9rem">${lims.length ? lims.join("، ") : "موردی ثبت نشده"}</p>
+      <button class="btn btn-secondary btn-block mt-1" onclick="navigate('coach')">ویرایش در مربی هوشمند</button>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="saveSettings()">ذخیره تنظیمات</button>
+    <button class="btn btn-danger btn-block mt-2" onclick="resetAllData()">پاک کردن تمام داده‌ها</button>
+    <p class="text-muted text-center mt-2" style="font-size:0.8rem">نسخه ۲.۰ · داده‌ها فقط روی این دستگاه</p>
+  `;
+}
+
+function saveSettings() {
+  state.profile.name = $("#set-name")?.value || state.profile.name;
+  state.profile.weight = Number($("#set-weight")?.value) || state.profile.weight;
+  state.profile.goals.protein = Number($("#set-protein")?.value) || 180;
+  state.profile.startDate = $("#set-start")?.value || state.profile.startDate;
+  state.settings.preferredWorkoutTime = $("#set-wtime")?.value || "17:00";
+  state.settings.reminderMinutesBefore = Number($("#set-remind")?.value) || 30;
+  saveState(state);
+  toast("تنظیمات ذخیره شد", "success");
+}
+
+function resetAllData() {
+  if (!confirm("همه داده‌ها پاک شود؟ این عمل برگشت‌ناپذیر است.")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = loadState();
+  toast("داده‌ها پاک شد", "warning");
+  navigate("dashboard");
+}
+
+// ---------- REPORTS ----------
+function renderReports() {
+  const week = getWeekNumber(state.profile.startDate);
+  const done = state.workoutHistory.filter(w => w.completed).length;
+  const startW = state.profile.startWeight || 94;
+  const latest = [...state.bodyLogs].sort((a, b) => b.date.localeCompare(a.date))[0];
+  const weightChange = latest ? (latest.weight - startW).toFixed(1) : "—";
+  const waistChange = latest?.waist && state.profile.startWaist
+    ? (latest.waist - state.profile.startWaist).toFixed(1)
+    : "—";
+
+  return `
+    <div class="card">
+      <div class="card-title">خلاصه ${week} هفته</div>
+      <div class="grid-2">
+        <div><div class="text-muted">جلسات</div><div class="card-value">${done}</div></div>
+        <div><div class="text-muted">تغییر وزن</div><div class="card-value">${weightChange} کیلو</div></div>
+      </div>
+      <div class="mt-2">
+        <div class="text-muted">پایبندی تقریبی</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100, (done / (week * 4)) * 100)}%"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">رکوردهای قدرتی (حجم ست)</div>
+      ${Object.keys(state.exercisePRs).length ? Object.entries(state.exercisePRs).slice(0, 12).map(([id, pr]) => {
+        const name = getActiveProgram(state).sessions.flatMap(s => s.exercises).find(e => e.id === id)?.name || id;
+        return `<div class="history-item flex-between"><span>${name}</span><span>${pr.weight}×${pr.reps}</span></div>`;
+      }).join("") : "<p class='text-muted'>هنوز رکوردی نیست</p>"}
+    </div>
+    ${week >= 6 ? `
+      <div class="card" style="border-color:var(--warning)">
+        <p>زمان ارزیابی رسمی برنامه است. قدرت، دور کمر، دور بازو/شانه و پایبندی را بررسی کنید. در صورت نیاز برنامه را با مربی/فیزیوتراپیست بازبینی کنید.</p>
+      </div>
+    ` : ""}
+  `;
+}
+
+// ---------- MORE ----------
+
+// ---------- MORE ----------
+function renderMore() {
+  const prog = getActiveProgram(state);
+  const isCustom = !!(state.customProgram && state.customProgram.sessions);
+  return `
+    <div class="session-card" onclick="navigate('coach')" style="border-color:var(--accent)">
+      <div class="session-name">🧠 مربی هوشمند</div>
+      <div class="session-muscles">مشخصات → پرامپت AI → وارد کردن برنامه و مکمل</div>
+    </div>
+    <div class="session-card" onclick="navigate('history')"><div class="session-name">تاریخچه تمرین</div><div class="session-muscles">جلسات قبلی و رکوردها</div></div>
+    <div class="session-card" onclick="navigate('nutrition')"><div class="session-name">تغذیه</div><div class="session-muscles">کالری و پروتئین روزانه</div></div>
+    <div class="session-card" onclick="navigate('reports')"><div class="session-name">گزارش‌ها و ارزیابی</div><div class="session-muscles">پیشرفت دوره‌ای</div></div>
+    <div class="session-card" onclick="navigate('settings')"><div class="session-name">تنظیمات و پروفایل</div><div class="session-muscles">وزن، ساعت تمرین، محدودیت‌ها</div></div>
+
+    <div class="card mt-2">
+      <div class="card-title">برنامه تمرینی فعال</div>
+      <p style="font-weight:600">${prog.name || "بدون نام"}</p>
+      <p class="text-muted" style="font-size:0.85rem">${prog.sessions?.length || 0} جلسه · ${isCustom ? "سفارشی / از AI" : "پیش‌فرض"}</p>
+      <button class="btn btn-primary btn-block mt-1" onclick="navigate('coach-import')">وارد کردن خروجی AI</button>
+      <button class="btn btn-secondary btn-block mt-1" onclick="exportProgram()">کپی JSON برنامه فعلی</button>
+      ${isCustom ? `<button class="btn btn-danger btn-block mt-1" onclick="resetToDefaultProgram()">بازگشت به برنامه پیش‌فرض</button>` : ""}
+    </div>
+  `;
+}
+
+// ---------- AI COACH FLOW ----------
+const LIMITATION_OPTIONS = [
+  { id: "l4l5", label: "دیسک کمر L4-L5 / کمردرد" },
+  { id: "knee", label: "مشکل زانو" },
+  { id: "shoulder", label: "مشکل شانه" },
+  { id: "elbow", label: "مشکل آرنج" },
+  { id: "hypertension", label: "فشار خون" },
+  { id: "none", label: "بدون محدودیت خاص" }
+];
+
+const GOAL_OPTIONS = [
+  { id: "shoulder", label: "حجم و فرم سرشانه" },
+  { id: "arms", label: "حجم بازو" },
+  { id: "chest", label: "سینه" },
+  { id: "back", label: "پشت / عرض" },
+  { id: "legs", label: "پا" },
+  { id: "fatloss", label: "کاهش چربی شکم و پهلو" },
+  { id: "retain", label: "حفظ توده عضلانی در کات" },
+  { id: "strength", label: "قدرت" },
+  { id: "general", label: "آمادگی عمومی" }
+];
+
+function renderCoach() {
+  const pr = state.profile;
+  const lims = pr.limitations || [];
+  const goals = pr.trainingGoals || [];
+  return `
+    <div class="card">
+      <div class="card-title">۱) مشخصات بدنی</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">سن</label>
+          <input class="form-input" type="number" id="c-age" value="${pr.age || 44}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">جنسیت</label>
+          <select class="form-select" id="c-gender">
+            <option value="male" ${pr.gender!=="female"?"selected":""}>مرد</option>
+            <option value="female" ${pr.gender==="female"?"selected":""}>زن</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">وزن (کیلو)</label>
+          <input class="form-input" type="number" step="0.1" id="c-weight" value="${pr.weight || 94}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">قد (سم)</label>
+          <input class="form-input" type="number" id="c-height" value="${pr.height || 178}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">سابقه تمرین (سال)</label>
+          <input class="form-input" type="number" id="c-exp" value="${pr.experienceYears || 0}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">ساعت تمرین</label>
+          <input class="form-input" type="time" id="c-wtime" value="${state.settings.preferredWorkoutTime || "17:00"}" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">۲) محدودیت‌ها</div>
+      ${LIMITATION_OPTIONS.map(o => `
+        <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.95rem">
+          <input type="checkbox" class="c-lim" value="${o.id}" ${lims.includes(o.id)?"checked":""} />
+          ${o.label}
+        </label>
+      `).join("")}
+    </div>
+
+    <div class="card">
+      <div class="card-title">۳) اهداف تمرینی</div>
+      ${GOAL_OPTIONS.map(o => `
+        <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.95rem">
+          <input type="checkbox" class="c-goal" value="${o.id}" ${goals.includes(o.id)?"checked":""} />
+          ${o.label}
+        </label>
+      `).join("")}
+    </div>
+
+    <div class="card">
+      <div class="card-title">۴) ساختار برنامه</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">تعداد جلسه در هفته</label>
+          <select class="form-select" id="c-sessions">
+            ${[3,4,5,6].map(n => `<option value="${n}" ${(pr.sessionsPerWeek||4)==n?"selected":""}>${n}</option>`).join("")}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">مدت هر جلسه (دقیقه)</label>
+          <input class="form-input" type="number" id="c-duration" value="${pr.sessionDuration || 70}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">تجهیزات</label>
+          <select class="form-select" id="c-equip">
+            <option value="gym" ${pr.equipment!=="home"?"selected":""}>باشگاه کامل</option>
+            <option value="home" ${pr.equipment==="home"?"selected":""}>خانگی / محدود</option>
+            <option value="machines" ${pr.equipment==="machines"?"selected":""}>عمدتاً دستگاه</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">هفته‌های برنامه</label>
+          <input class="form-input" type="number" id="c-weeks" value="8" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">توضیح اضافه (اختیاری)</label>
+        <textarea class="form-input" id="c-extra" rows="2" placeholder="مثلاً: تمرکز روی دلتوئید میانی، اجتناب از پرس نظامی ایستاده...">${pr.extraNotes || ""}</textarea>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-lg btn-block" onclick="saveCoachProfileAndPrompt()">ذخیره و ساخت پرامپت AI</button>
+    <button class="btn btn-secondary btn-block mt-1" onclick="navigate('coach-import')">از قبل خروجی AI دارم → وارد کردن</button>
+  `;
+}
+
+function saveCoachProfileAndPrompt() {
+  const lims = [...document.querySelectorAll(".c-lim:checked")].map(el => el.value).filter(v => v !== "none");
+  const goals = [...document.querySelectorAll(".c-goal:checked")].map(el => el.value);
+  state.profile.age = Number($("#c-age")?.value) || state.profile.age;
+  state.profile.gender = $("#c-gender")?.value || "male";
+  state.profile.weight = Number($("#c-weight")?.value) || state.profile.weight;
+  state.profile.height = Number($("#c-height")?.value) || state.profile.height;
+  state.profile.experienceYears = Number($("#c-exp")?.value) || 0;
+  state.profile.limitations = lims;
+  state.profile.trainingGoals = goals;
+  state.profile.sessionsPerWeek = Number($("#c-sessions")?.value) || 4;
+  state.profile.sessionDuration = Number($("#c-duration")?.value) || 70;
+  state.profile.equipment = $("#c-equip")?.value || "gym";
+  state.profile.extraNotes = $("#c-extra")?.value || "";
+  state.profile.planWeeks = Number($("#c-weeks")?.value) || 8;
+  state.profile.setupDone = true;
+  state.settings.preferredWorkoutTime = $("#c-wtime")?.value || "17:00";
+  // recalc supplement times
+  const wt = state.settings.preferredWorkoutTime;
+  state.supplements.forEach(s => {
+    const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+    if (def && s.autoTime !== false) {
+      s.time = computeSuppTime(def.timing, def.offsetMin, wt);
+      s.times = [s.time];
+    }
+  });
+  saveState(state);
+  toast("پروفایل ذخیره شد", "success");
+  navigate("coach-prompt");
+}
+
+function buildAiPrompt() {
+  const pr = state.profile;
+  const wt = state.settings.preferredWorkoutTime || "17:00";
+  const gender = pr.gender === "female" ? "زن" : "مرد";
+  const limLabels = (pr.limitations || []).map(id => LIMITATION_OPTIONS.find(o => o.id === id)?.label || id);
+  const goalLabels = (pr.trainingGoals || []).map(id => GOAL_OPTIONS.find(o => o.id === id)?.label || id);
+  const equipMap = { gym: "باشگاه کامل", home: "خانگی/محدود", machines: "عمدتاً دستگاه و سیم‌کش" };
+
+  const forbidden = [];
+  if ((pr.limitations || []).includes("l4l5")) {
+    forbidden.push("اسکوات هالتر سنگین", "ددلیفت", "Romanian Deadlift", "Good Morning", "Bent-over Row سنگین", "کرانچ سنگین با دامنه زیاد", "چرخش سنگین تنه");
+  }
+  if ((pr.limitations || []).includes("knee")) forbidden.push("اسکوات عمیق سنگین", "لانج سنگین اگر دردناک است");
+  if ((pr.limitations || []).includes("shoulder")) forbidden.push("پرس نظامی پشت گردن", "پلاور سنگین پشت سر");
+
+  return `تو یک مربی بدنسازی و متخصص تغذیه ورزشی هستی. فقط یک JSON معتبر برگردان. هیچ متنی قبل یا بعد از JSON ننویس. از { شروع کن و با } تمام کن.
+
+خروجی باید دقیقاً این ساختار را داشته باشد:
+{
+  "program": {
+    "name": "نام برنامه",
+    "weeks": ${pr.planWeeks || 8},
+    "sessionsPerWeek": ${pr.sessionsPerWeek || 4},
+    "sessions": [
+      {
+        "id": 1,
+        "name": "عنوان جلسه",
+        "shortName": "جلسه ۱",
+        "color": "#22d3ee",
+        "muscles": ["عضله1", "عضله2"],
+        "warmUp": "توضیح گرم‌کردن",
+        "note": "",
+        "exercises": [
+          {
+            "id": "s1e1",
+            "name": "نام حرکت فارسی",
+            "muscle": "گروه عضلانی",
+            "sets": 3,
+            "reps": "8-12",
+            "rest": "2 دقیقه",
+            "rir": "2",
+            "note": "",
+            "safety": ""
+          }
+        ]
+      }
+    ]
+  },
+  "supplements": [
+    { "id": "creatine", "enabled": true, "dose": 5 },
+    { "id": "whey", "enabled": true, "dose": 30 },
+    { "id": "caffeine", "enabled": true, "dose": 150 }
+  ],
+  "nutrition": {
+    "proteinGrams": 180,
+    "calorieDeficit": 400,
+    "notes": "نکته کوتاه تغذیه"
+  }
+}
+
+شناسه‌های مجاز مکمل (فقط از این لیست id استفاده کن):
+creatine, whey, casein, caffeine, betaalanine, citrulline, citrulline_pure, betaine, taurine, electrolytes, vitd, omega3, magnesium, zinc, multivitamin, ashwagandha, vitamin_c, collagen, bcaa, glutamine, fatburner, preworkout_blend
+
+قوانین برنامه:
+- تعداد جلسات: ${pr.sessionsPerWeek || 4}
+- مدت تقریبی هر جلسه: حدود ${pr.sessionDuration || 70} دقیقه
+- هفته‌ها: ${pr.planWeeks || 8}
+- sets عدد باشد؛ reps مثل "6-10" یا "12-20"؛ rest مثل "90ث" یا "2 دقیقه"؛ rir مثل "1-2"
+- id حرکات یکتا: s1e1, s1e2, s2e1 ...
+- رنگ جلسات از: "#22d3ee", "#a78bfa", "#fbbf24", "#34d399", "#f87171"
+- نام حرکات فارسی و واقعی
+- برای هایپرتروفی RIR عمدتاً 1 تا 3؛ Failure فقط گاهی در ایزوله
+
+مشخصات کاربر:
+- ${gender}، ${pr.age || "?"} ساله
+- وزن: ${pr.weight || "?"} کیلو · قد: ${pr.height || "?"} سم
+- سابقه تمرین: ${pr.experienceYears || 0} سال
+- ساعت تمرین معمول: ${wt}
+- تجهیزات: ${equipMap[pr.equipment] || pr.equipment || "باشگاه"}
+- محدودیت‌ها: ${limLabels.length ? limLabels.join("، ") : "ندارد"}
+- اهداف: ${goalLabels.length ? goalLabels.join("، ") : "عمومی"}
+${forbidden.length ? "- حرکات ممنوع: " + forbidden.join("، ") : ""}
+${(pr.limitations || []).includes("l4l5") ? "- جایگزین‌های کم‌ریسک کمر: پرس پا، دستگاه‌ها، قایقی سینه‌تکیه، لت‌پول‌داون، پشت پا، جلو پا، پالوف پرس، ددباگ، پلانک بغل" : ""}
+${pr.extraNotes ? "- توضیح اضافه کاربر: " + pr.extraNotes : ""}
+
+مکمل‌ها:
+- فقط مکمل‌های واقعاً مفید برای این کاربر را enabled:true کن
+- کراتین و وی معمولاً برای هایپرتروفی مناسب‌اند
+- BCAA/گلوتامین/چربی‌سوز را مگر دلیل قوی، enabled:false بگذار
+- دوزها واقع‌بینانه باشد
+
+فقط JSON نهایی را برگردان.`;
+}
+
+function renderCoachPrompt() {
+  const prompt = buildAiPrompt();
+  return `
+    <div class="card">
+      <div class="card-title">۲) پرامپت آماده برای هوش مصنوعی</div>
+      <p style="font-size:0.9rem;margin-bottom:10px;line-height:1.6">
+        این متن را کپی کنید و در ChatGPT / Claude / Gemini / هر AI دیگری بچسبانید.
+        خروجی باید <strong>فقط JSON</strong> باشد.
+      </p>
+      <textarea class="form-input" id="ai-prompt-box" rows="16" style="font-size:0.75rem;line-height:1.45">${prompt.replace(/</g,"&lt;")}</textarea>
+      <button class="btn btn-primary btn-lg btn-block mt-2" onclick="copyAiPrompt()">کپی پرامپت</button>
+      <button class="btn btn-secondary btn-block mt-1" onclick="navigate('coach')">ویرایش مشخصات</button>
+      <button class="btn btn-success btn-block mt-1" onclick="navigate('coach-import')">خروجی AI را گرفتم → وارد کردن</button>
+    </div>
+    <div class="card">
+      <div class="card-title">راهنما</div>
+      <p style="font-size:0.85rem;line-height:1.7">
+        ۱. کپی پرامپت<br>
+        ۲. در AI بفرستید<br>
+        ۳. کل JSON پاسخ را کپی کنید<br>
+        ۴. در صفحه بعد بچسبانید و تأیید کنید<br>
+        برنامه جلسات + روشن/خاموش و دوز مکمل‌ها خودکار اعمال می‌شود.
+      </p>
+    </div>
+  `;
+}
+
+function copyAiPrompt() {
+  const el = document.getElementById("ai-prompt-box");
+  const str = el ? el.value : buildAiPrompt();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(str).then(() => toast("پرامپت کپی شد", "success"))
+      .catch(() => { el?.select(); document.execCommand("copy"); toast("پرامپت کپی شد", "success"); });
+  } else {
+    el?.select();
+    document.execCommand("copy");
+    toast("پرامپت کپی شد", "success");
+  }
+}
+
+function renderCoachImport() {
+  return `
+    <div class="card">
+      <div class="card-title">۳) وارد کردن خروجی هوش مصنوعی</div>
+      <p style="font-size:0.9rem;margin-bottom:10px;line-height:1.6">
+        کل JSON را اینجا بچسبانید. اگر AI متن اضافه نوشته، فقط از اولین <code>{</code> تا آخرین <code>}</code> را کپی کنید.
+      </p>
+      <textarea class="form-input" id="ai-import-box" rows="14" style="font-family:monospace;font-size:0.72rem;direction:ltr;text-align:left" placeholder='{"program":{...},"supplements":[...]}'></textarea>
+      <button class="btn btn-primary btn-lg btn-block mt-2" onclick="applyAiImport()">اعمال برنامه و مکمل‌ها</button>
+      <button class="btn btn-secondary btn-block mt-1" onclick="navigate('coach-prompt')">بازگشت به پرامپت</button>
+    </div>
+    <div class="card">
+      <div class="card-title">فرمت قابل قبول</div>
+      <p style="font-size:0.8rem;line-height:1.6" class="text-muted">
+        • شیء کامل با program + supplements (پیشنهادی)<br>
+        • یا فقط آبجکت program با sessions<br>
+        • یا مستقیماً آرایه sessions<br>
+        اپ تا حد امکان استخراج و نرمال‌سازی می‌کند.
+      </p>
+    </div>
+  `;
+}
+
+function extractJsonObject(raw) {
+  let s = (raw || "").trim();
+  // strip markdown fences
+  s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+  const first = s.indexOf("{");
+  const last = s.lastIndexOf("}");
+  if (first >= 0 && last > first) s = s.slice(first, last + 1);
+  return JSON.parse(s);
+}
+
+function normalizeProgram(data) {
+  let prog = data;
+  if (data.program) prog = data.program;
+  if (Array.isArray(data)) prog = { name: "برنامه وارد شده", sessions: data };
+  if (data.sessions && !prog.sessions) prog = data;
+  if (!prog.sessions || !Array.isArray(prog.sessions) || !prog.sessions.length) {
+    throw new Error("sessions یافت نشد");
+  }
+  prog.name = prog.name || "برنامه AI";
+  prog.weeks = prog.weeks || state.profile.planWeeks || 8;
+  prog.sessionsPerWeek = prog.sessionsPerWeek || prog.sessions.length;
+  prog.sessions = prog.sessions.map((s, i) => ({
+    id: s.id || (i + 1),
+    name: s.name || ("جلسه " + (i + 1)),
+    shortName: s.shortName || ("جلسه " + (i + 1)),
+    color: s.color || ["#22d3ee","#a78bfa","#fbbf24","#34d399","#f87171"][i % 5],
+    muscles: s.muscles || [],
+    warmUp: s.warmUp || "",
+    note: s.note || "",
+    exercises: (s.exercises || []).map((e, j) => ({
+      id: e.id || ("s" + (s.id || i + 1) + "e" + (j + 1)),
+      name: e.name || "حرکت",
+      muscle: e.muscle || "",
+      sets: Number(e.sets) || 3,
+      reps: String(e.reps || "8-12"),
+      rest: String(e.rest || "90ث"),
+      rir: e.rir != null ? String(e.rir) : "2",
+      note: e.note || "",
+      safety: e.safety || ""
+    }))
+  }));
+  return prog;
+}
+
+function applySupplementsFromAi(list) {
+  if (!Array.isArray(list) || !list.length) return 0;
+  let n = 0;
+  const wt = state.settings.preferredWorkoutTime || "17:00";
+  list.forEach(item => {
+    const id = item.id || item.name;
+    const s = state.supplements.find(x => x.id === id);
+    if (!s) return;
+    if (item.enabled != null) s.enabled = !!item.enabled;
+    if (item.dose != null) s.dose = Number(item.dose) || s.dose;
+    s.reminder = s.enabled;
+    const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+    if (def && s.autoTime !== false) {
+      s.time = computeSuppTime(def.timing, def.offsetMin, wt);
+      s.times = [s.time];
+    }
+    n++;
+  });
+  return n;
+}
+
+function applyAiImport() {
+  const raw = document.getElementById("ai-import-box")?.value || "";
+  if (!raw.trim()) { toast("چیزی وارد نشده", "warning"); return; }
+  try {
+    const data = extractJsonObject(raw);
+    const prog = normalizeProgram(data);
+    state.customProgram = prog;
+    state.settings.sessionOrder = prog.sessions.map(s => s.id);
+    state.profile.startDate = state.profile.startDate || getTodayStr();
+    state.profile.setupDone = true;
+
+    let suppCount = 0;
+    if (data.supplements) suppCount = applySupplementsFromAi(data.supplements);
+
+    if (data.nutrition) {
+      if (data.nutrition.proteinGrams) state.profile.goals.protein = Number(data.nutrition.proteinGrams) || state.profile.goals.protein;
+      if (data.nutrition.calorieDeficit) state.profile.goals.deficit = Number(data.nutrition.calorieDeficit) || state.profile.goals.deficit;
+    }
+
+    saveState(state);
+    toast(`اعمال شد: ${prog.sessions.length} جلسه` + (suppCount ? ` · ${suppCount} مکمل` : ""), "success");
+    navigate("workouts");
+  } catch (err) {
+    toast("خطا در خواندن JSON: " + err.message, "danger");
+  }
+}
+
+function showProgramImport() {
+  navigate("coach-import");
+}
+
+function importProgramJson() {
+  applyAiImport();
+}
+
+function exportProgram() {
+  const prog = getActiveProgram(state);
+  const payload = {
+    program: prog,
+    supplements: state.supplements.filter(s => s.enabled).map(s => ({
+      id: s.id, enabled: true, dose: s.dose
+    }))
+  };
+  const str = JSON.stringify(payload, null, 2);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(str).then(() => toast("JSON در کلیپ‌بورد کپی شد", "success"))
+      .catch(() => showExportModal(str));
+  } else {
+    showExportModal(str);
+  }
+}
+
+function showExportModal(str) {
+  $("#modal-root").innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal-sheet">
+        <div class="modal-title">JSON برنامه</div>
+        <textarea class="form-input" rows="14" style="font-family:monospace;font-size:0.7rem;direction:ltr;text-align:left" readonly>${str.replace(/</g,"&lt;")}</textarea>
+        <button class="btn btn-secondary btn-block mt-1" onclick="closeModal()">بستن</button>
+      </div>
+    </div>`;
+}
+
+function resetToDefaultProgram() {
+  if (!confirm("برنامه سفارشی حذف و برنامه پیش‌فرض برگردد؟")) return;
+  state.customProgram = null;
+  state.settings.sessionOrder = [1, 2, 3, 4];
+  saveState(state);
+  toast("برنامه پیش‌فرض فعال شد", "success");
+  render();
+}
+
+// ---------- Bind (for dynamically added inline handlers we use global functions) ----------
+function bindViewEvents() {
+  // already using onclick globals
+}
+
+// Expose globals for inline handlers
+window.navigate = navigate;
+window.startWorkout = startWorkout;
+window.resumeWorkout = resumeWorkout;
+window.showSessionDetail = showSessionDetail;
+window.closeModal = closeModal;
+window.updateSet = updateSet;
+window.toggleSetDone = toggleSetDone;
+window.flagPain = flagPain;
+window.startRestFor = startRestFor;
+window.addRest = addRest;
+window.skipRest = skipRest;
+window.finishWorkout = finishWorkout;
+window.cancelWorkout = cancelWorkout;
+window.markSuppTaken = markSuppTaken;
+window.toggleSupp = toggleSupp;
+window.showSuppSettings = showSuppSettings;
+window.saveSuppSettings = saveSuppSettings;
+window.saveCoachProfileAndPrompt = saveCoachProfileAndPrompt;
+window.copyAiPrompt = copyAiPrompt;
+window.applyAiImport = applyAiImport;
+window.showProgramImport = showProgramImport;
+window.importProgramJson = importProgramJson;
+window.exportProgram = exportProgram;
+window.resetToDefaultProgram = resetToDefaultProgram;
+window.updateWorkoutTimeFromSupp = updateWorkoutTimeFromSupp;
+window.recalcAllSuppTimes = recalcAllSuppTimes;
+
+
+
+
+window.saveBodyLog = saveBodyLog;
+window.saveNutrition = saveNutrition;
+window.saveSettings = saveSettings;
+window.resetAllData = resetAllData;
+
+// ---------- Simple reminder check (in-app, when open) ----------
+function checkReminders() {
+  if (document.hidden) return;
+  const now = new Date();
+  const hhmm = now.toTimeString().slice(0, 5);
+  const today = getTodayStr();
+  state.supplements.filter(s => s.enabled && s.reminder !== false).forEach(s => {
+    const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+    if (!def) return;
+    const t = getSuppEffectiveTime(s, def);
+    if (t === hhmm) {
+      const already = state.supplementLogs.some(l => l.date === today && l.suppId === s.id && l.taken);
+      if (!already) {
+        toast(`زمان مصرف ${def.name}: ${s.dose} ${def.unit}`, "warning");
+        if (Notification.permission === "granted") {
+          new Notification(`مکمل: ${def.name}`, { body: `${s.dose} ${def.unit}` });
+        }
+      }
+    }
+  });
+}
+
+// Request notification permission (best-effort)
+if ("Notification" in window && Notification.permission === "default") {
+  // don't force; user can enable later
+}
+
+setInterval(checkReminders, 30000);
+
+// PWA install prompt placeholder
+let deferredPrompt;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+});
+
+// Init
+render();
+
+  </script>
+</body>
+</html>
