@@ -24,6 +24,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install Capacitor
         run: |
           npm install -g @capacitor/cli
@@ -31,7 +34,7 @@ jobs:
 
       - name: Initialize Capacitor
         run: |
-          echo '{"appId":"com.fitai.app","appName":"FitAI","webDir":".","bundledWebRuntime":false}' > capacitor.config.json
+          echo '{"appId":"com.fitai.app","appName":"FitAI","webDir":"www"}' > capacitor.config.json
 
       - name: Add Android Platform
         run: npx cap add android
