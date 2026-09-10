@@ -1,0 +1,6 @@
+{
+  "appId": "com.fitai.app",
+  "appName": "FitAI",
+  "webDir": ".",
+  "bundledWebRuntime": false
+}
