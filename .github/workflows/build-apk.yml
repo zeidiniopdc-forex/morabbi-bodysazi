@@ -3,7 +3,7 @@ name: Build FitAI APK
 on:
   push:
     branches:
-      - main  # اگر برنچ اصلی تو master هست، این رو به master تغییر بده
+      - main
 
 jobs:
   build:
@@ -18,19 +18,25 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Setup Java
+      - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install Capacitor
+        run: |
+          npm install -g @capacitor/cli
+          npm install @capacitor/core @capacitor/android
 
-      - name: Add Android platform
+      - name: Initialize Capacitor
+        run: |
+          echo '{"appId":"com.fitai.app","appName":"FitAI","webDir":".","bundledWebRuntime":false}' > capacitor.config.json
+
+      - name: Add Android Platform
         run: npx cap add android
 
-      - name: Sync web assets
+      - name: Sync Files
         run: npx cap sync android
 
       - name: Build APK
