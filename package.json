@@ -2,7 +2,7 @@
   "name": "fitai",
   "version": "1.0.0",
   "description": "FitAI - AI-powered fitness app",
-  "main": "index.html",
+  "main": "www/index.html",
   "scripts": {
     "build": "echo 'No build step needed for vanilla JS'"
   },
