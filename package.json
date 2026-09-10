@@ -1,0 +1,14 @@
+{
+  "name": "fitai",
+  "version": "1.0.0",
+  "description": "FitAI - AI-powered fitness app",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'No build step needed for vanilla JS'"
+  },
+  "dependencies": {
+    "@capacitor/android": "^5.7.0",
+    "@capacitor/cli": "^5.7.0",
+    "@capacitor/core": "^5.7.0"
+  }
+}
