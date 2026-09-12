@@ -1293,13 +1293,38 @@ function renderCoach() {
   const pr = state.profile;
   const lims = pr.limitations || [];
   const goals = pr.trainingGoals || [];
+  const daysLocked = Array.isArray(state.settings.workoutDays) && state.settings.workoutDays.length > 0
+    && pr.sessionsPerWeek !== "auto" && pr.sessionsPerWeek != null;
+  const days = daysLocked ? state.settings.workoutDays : [];
+  const dayChecks = IR_WEEK_ORDER.map(d => {
+    const checked = days.includes(d) ? "checked" : "";
+    return `<label class="day-check"><input type="checkbox" class="c-wday" value="${d}" ${checked} /> ${DAY_NAMES_FA[d]}</label>`;
+  }).join("");
+  const sessIsAuto = pr.sessionsPerWeek === "auto" || pr.sessionsPerWeek == null || !daysLocked;
+
   return `
+    <div class="card" style="border-color:var(--accent)">
+      <div class="card-title">🧠 مربی هوشمند</div>
+      <p style="font-size:0.9rem;line-height:1.65;margin:0">
+        همه مشخصات لازم برای ساخت برنامه اینجاست. بعد از ذخیره، پرامپت آماده می‌شود تا به AI بدهید و خروجی JSON را برگردانید.
+      </p>
+      <div class="coach-steps mt-2">
+        <span class="coach-step active">۱ مشخصات</span>
+        <span class="coach-step">۲ پرامپت</span>
+        <span class="coach-step">۳ وارد کردن</span>
+      </div>
+    </div>
+
     <div class="card">
-      <div class="card-title">۱) مشخصات بدنی</div>
+      <div class="card-title">پروفایل</div>
+      <div class="form-group">
+        <label class="form-label">نام</label>
+        <input class="form-input" id="c-name" value="${pr.name || ""}" placeholder="نام شما" />
+      </div>
       <div class="grid-2">
         <div class="form-group">
           <label class="form-label">سن</label>
-          <input class="form-input" type="number" id="c-age" value="${pr.age || 44}" />
+          <input class="form-input" type="number" id="c-age" value="${pr.age || ""}" />
         </div>
         <div class="form-group">
           <label class="form-label">جنسیت</label>
@@ -1310,128 +1335,165 @@ function renderCoach() {
         </div>
         <div class="form-group">
           <label class="form-label">وزن (کیلو)</label>
-          <input class="form-input" type="number" step="0.1" id="c-weight" value="${pr.weight || 94}" />
+          <input class="form-input" type="number" step="0.1" id="c-weight" value="${pr.weight || ""}" />
         </div>
         <div class="form-group">
           <label class="form-label">قد (سم)</label>
-          <input class="form-input" type="number" id="c-height" value="${pr.height || 178}" />
+          <input class="form-input" type="number" id="c-height" value="${pr.height || ""}" />
         </div>
         <div class="form-group">
           <label class="form-label">سابقه تمرین (سال)</label>
-          <input class="form-input" type="number" id="c-exp" value="${pr.experienceYears || 0}" />
+          <input class="form-input" type="number" id="c-exp" value="${pr.experienceYears ?? 0}" />
         </div>
         <div class="form-group">
-          <label class="form-label">ساعت تمرین</label>
+          <label class="form-label">ساعت تمرین معمول</label>
           <input class="form-input" type="time" id="c-wtime" value="${state.settings.preferredWorkoutTime || "17:00"}" />
         </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">۲) محدودیت‌ها</div>
+      <div class="card-title">محدودیت‌ها و آسیب‌ها</div>
+      <p class="text-muted" style="font-size:0.8rem;margin-bottom:8px">هر مورد مرتبط را علامت بزنید تا حرکات خطرناک حذف شوند.</p>
+      <div class="chip-grid">
       ${LIMITATION_OPTIONS.map(o => `
-        <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.95rem">
-          <input type="checkbox" class="c-lim" value="${o.id}" ${lims.includes(o.id)?"checked":""} />
-          ${o.label}
-        </label>
-      `).join("")}
+        <label class="chip-check">
+          <input type="checkbox" class="c-lim" value="${o.id}" ${lims.includes(o.id) || (o.id==="none" && !lims.length) ? "checked" : ""} />
+          <span>${o.label}</span>
+        </label>`).join("")}
+      </div>
     </div>
 
     <div class="card">
-      <div class="card-title">۳) اهداف تمرینی</div>
+      <div class="card-title">اهداف تمرینی</div>
+      <p class="text-muted" style="font-size:0.8rem;margin-bottom:8px">می‌توانید چند هدف انتخاب کنید.</p>
+      <div class="chip-grid">
       ${GOAL_OPTIONS.map(o => `
-        <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.95rem">
+        <label class="chip-check">
           <input type="checkbox" class="c-goal" value="${o.id}" ${goals.includes(o.id)?"checked":""} />
-          ${o.label}
-        </label>
-      `).join("")}
+          <span>${o.label}</span>
+        </label>`).join("")}
+      </div>
     </div>
 
     <div class="card">
-      <div class="card-title">۴) ساختار برنامه</div>
+      <div class="card-title">تعداد جلسات و روزهای هفته</div>
+      <p class="text-muted" style="font-size:0.8rem;margin-bottom:10px;line-height:1.5">
+        اگر «به انتخاب AI» باشد، تعداد و روزها قفل نمی‌شود. فقط وقتی روزها را خودتان تیک بزنید در پرامپت اجباری می‌شوند.
+      </p>
+      <div class="form-group">
+        <label class="form-label">تعداد جلسات در هفته</label>
+        <select class="form-select" id="c-sessions" onchange="onCoachSessionsChange()">
+          <option value="auto" ${sessIsAuto?"selected":""}>🤖 به انتخاب هوش مصنوعی</option>
+          ${[3,4,5,6].map(n => `<option value="${n}" ${!sessIsAuto && Number(pr.sessionsPerWeek)===n?"selected":""}>${n} جلسه</option>`).join("")}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">روزهای تمرین (شنبه تا جمعه)</label>
+        <div class="day-check-grid" id="c-days-wrap">${dayChecks}</div>
+        <button type="button" class="btn btn-secondary btn-sm btn-block mt-1" onclick="clearCoachDays()">🤖 پاک کردن تیک‌ها — واگذاری به AI</button>
+      </div>
       <div class="grid-2">
-        <div class="form-group">
-          <label class="form-label">تعداد جلسه در هفته</label>
-          <select class="form-select" id="c-sessions">
-            <option value="auto" ${pr.sessionsPerWeek==="auto"||pr.sessionsPerWeek==null?"selected":""}>🤖 به انتخاب هوش مصنوعی</option>
-            ${[3,4,5,6].map(n => `<option value="${n}" ${pr.sessionsPerWeek==n?"selected":""}>${n} جلسه</option>`).join("")}
-          </select>
-        </div>
         <div class="form-group">
           <label class="form-label">مدت هر جلسه</label>
           <select class="form-select" id="c-duration">
-            <option value="auto" ${pr.sessionDuration==="auto"||pr.sessionDuration==null?"selected":""}>🤖 به انتخاب هوش مصنوعی</option>
-            <option value="45" ${pr.sessionDuration==45?"selected":""}>حدود ۴۵ دقیقه</option>
-            <option value="60" ${pr.sessionDuration==60?"selected":""}>حدود ۶۰ دقیقه</option>
-            <option value="70" ${pr.sessionDuration==70?"selected":""}>حدود ۷۰ دقیقه</option>
-            <option value="75" ${pr.sessionDuration==75?"selected":""}>حدود ۷۵ دقیقه</option>
-            <option value="90" ${pr.sessionDuration==90?"selected":""}>حدود ۹۰ دقیقه</option>
+            <option value="auto" ${pr.sessionDuration==="auto"||pr.sessionDuration==null?"selected":""}>🤖 انتخاب AI</option>
+            <option value="45" ${pr.sessionDuration==45?"selected":""}>≈ ۴۵ دقیقه</option>
+            <option value="60" ${pr.sessionDuration==60?"selected":""}>≈ ۶۰ دقیقه</option>
+            <option value="70" ${pr.sessionDuration==70?"selected":""}>≈ ۷۰ دقیقه</option>
+            <option value="75" ${pr.sessionDuration==75?"selected":""}>≈ ۷۵ دقیقه</option>
+            <option value="90" ${pr.sessionDuration==90?"selected":""}>≈ ۹۰ دقیقه</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">تجهیزات</label>
-          <select class="form-select" id="c-equip">
-            <option value="gym" ${pr.equipment!=="home"&&pr.equipment!=="machines"?"selected":""}>باشگاه کامل</option>
-            <option value="home" ${pr.equipment==="home"?"selected":""}>خانگی / محدود</option>
-            <option value="machines" ${pr.equipment==="machines"?"selected":""}>عمدتاً دستگاه</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">هفته‌های برنامه</label>
+          <label class="form-label">طول دوره</label>
           <select class="form-select" id="c-weeks">
-            <option value="auto" ${pr.planWeeks==="auto"?"selected":""}>🤖 به انتخاب هوش مصنوعی</option>
+            <option value="auto" ${pr.planWeeks==="auto"?"selected":""}>🤖 انتخاب AI</option>
             <option value="4" ${pr.planWeeks==4?"selected":""}>۴ هفته</option>
             <option value="6" ${pr.planWeeks==6?"selected":""}>۶ هفته</option>
-            <option value="8" ${!pr.planWeeks||pr.planWeeks==8?"selected":""}>۸ هفته</option>
+            <option value="8" ${pr.planWeeks==8||pr.planWeeks==null||pr.planWeeks===""?"selected":""}>۸ هفته</option>
             <option value="12" ${pr.planWeeks==12?"selected":""}>۱۲ هفته</option>
           </select>
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">توضیح اضافه (اختیاری)</label>
-        <textarea class="form-input" id="c-extra" rows="2" placeholder="مثلاً: تمرکز روی دلتوئید میانی، اجتناب از پرس نظامی ایستاده...">${pr.extraNotes || ""}</textarea>
+        <label class="form-label">تجهیزات</label>
+        <select class="form-select" id="c-equip">
+          <option value="gym" ${pr.equipment!=="home"&&pr.equipment!=="machines"?"selected":""}>باشگاه کامل</option>
+          <option value="home" ${pr.equipment==="home"?"selected":""}>خانگی / محدود</option>
+          <option value="machines" ${pr.equipment==="machines"?"selected":""}>عمدتاً دستگاه و سیم‌کش</option>
+        </select>
       </div>
     </div>
 
-    <button class="btn btn-primary btn-lg btn-block" onclick="saveCoachProfileAndPrompt()">ذخیره و ساخت پرامپت AI</button>
-    <button class="btn btn-secondary btn-block mt-1" onclick="navigate('coach-import')">از قبل خروجی AI دارم → وارد کردن</button>
+    <div class="card">
+      <div class="card-title">تغذیه (برای پرامپت)</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">هدف پروتئین (گرم/روز)</label>
+          <input class="form-input" type="number" id="c-protein" value="${pr.goals?.protein || 180}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">کسری کالری تقریبی</label>
+          <input class="form-input" type="number" id="c-deficit" value="${pr.goals?.deficit || 400}" placeholder="مثلاً 400" />
+        </div>
+      </div>
+      <p class="text-muted" style="font-size:0.78rem">اگر مطمئن نیستید همان اعداد پیشنهادی بماند؛ AI می‌تواند تعدیل کند.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">توضیح اضافه برای مربی AI</div>
+      <textarea class="form-input" id="c-extra" rows="3" placeholder="مثلاً: تمرکز روی دلتوئید میانی، باشگاه شلوغ عصرها، ترجیح دستگاه به‌جای هالتر...">${pr.extraNotes || ""}</textarea>
+    </div>
+
+    <div class="coach-actions">
+      <button class="btn btn-primary btn-lg btn-block" onclick="saveCoachProfileAndPrompt()">ذخیره و ساخت پرامپت AI</button>
+      <button class="btn btn-secondary btn-block mt-1" onclick="navigate('coach-import')">از قبل خروجی AI دارم → وارد کردن</button>
+    </div>
   `;
 }
+
 
 function saveCoachProfileAndPrompt() {
   const lims = [...document.querySelectorAll(".c-lim:checked")].map(el => el.value).filter(v => v !== "none");
   const goals = [...document.querySelectorAll(".c-goal:checked")].map(el => el.value);
+  const dayChecks = sortIranWeekDays([...document.querySelectorAll(".c-wday:checked")].map(el => Number(el.value)));
+  const sessVal = $("#c-sessions")?.value || "auto";
+  const durVal = $("#c-duration")?.value || "auto";
+  const weeksVal = $("#c-weeks")?.value || "auto";
+
+  state.profile.name = ($("#c-name")?.value || "").trim() || state.profile.name || "کاربر";
   state.profile.age = Number($("#c-age")?.value) || state.profile.age;
   state.profile.gender = $("#c-gender")?.value || "male";
   state.profile.weight = Number($("#c-weight")?.value) || state.profile.weight;
   state.profile.height = Number($("#c-height")?.value) || state.profile.height;
   state.profile.experienceYears = Number($("#c-exp")?.value) || 0;
   state.profile.limitations = lims;
-  state.profile.trainingGoals = goals;
-  const sessVal = $("#c-sessions")?.value || "auto";
-  const durVal = $("#c-duration")?.value || "auto";
-  const weeksVal = $("#c-weeks")?.value || "8";
-  if (sessVal === "auto") {
-    state.profile.sessionsPerWeek = "auto";
-    state.settings.workoutDays = []; // قفل روز برداشته شود تا AI تصمیم بگیرد
-  } else {
-    const n = Number(sessVal) || 4;
-    state.profile.sessionsPerWeek = n;
-    // فقط اگر کاربر قبلاً روزی تیک نزده، الگوی ریکاوری پیشنهادی بگذار (قابل تغییر در تنظیمات)
-    if (!Array.isArray(state.settings.workoutDays) || state.settings.workoutDays.length === 0) {
-      state.settings.workoutDays = suggestWorkoutDays(n);
-    } else if (state.settings.workoutDays.length !== n) {
-      // تعداد تیک‌ها با تعداد جلسات هم‌خوان نیست → الگوی جدید
-      state.settings.workoutDays = suggestWorkoutDays(n);
-    }
-  }
-  state.profile.sessionDuration = durVal === "auto" ? "auto" : (Number(durVal) || 70);
+  state.profile.trainingGoals = goals.length ? goals : state.profile.trainingGoals;
   state.profile.equipment = $("#c-equip")?.value || "gym";
   state.profile.extraNotes = $("#c-extra")?.value || "";
   state.profile.planWeeks = weeksVal === "auto" ? "auto" : (Number(weeksVal) || 8);
+  state.profile.sessionDuration = durVal === "auto" ? "auto" : (Number(durVal) || 70);
+  state.profile.goals = state.profile.goals || {};
+  state.profile.goals.protein = Number($("#c-protein")?.value) || state.profile.goals.protein || 180;
+  state.profile.goals.deficit = Number($("#c-deficit")?.value) || state.profile.goals.deficit || 400;
   state.profile.setupDone = true;
   state.settings.preferredWorkoutTime = $("#c-wtime")?.value || "17:00";
-  // recalc supplement times
+
+  // روزها و تعداد جلسات: تیک‌های همین صفحه اولویت دارند
+  if (dayChecks.length) {
+    state.settings.workoutDays = dayChecks;
+    state.profile.sessionsPerWeek = dayChecks.length;
+  } else if (sessVal === "auto") {
+    state.settings.workoutDays = [];
+    state.profile.sessionsPerWeek = "auto";
+  } else {
+    const n = Number(sessVal) || 4;
+    state.profile.sessionsPerWeek = n;
+    state.settings.workoutDays = []; // تعداد مشخص است ولی روزها به AI مگر بعداً تیک بخورد
+  }
+
+  // زمان مکمل‌ها
   const wt = state.settings.preferredWorkoutTime;
   state.supplements.forEach(s => {
     const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
@@ -1440,10 +1502,27 @@ function saveCoachProfileAndPrompt() {
       s.times = [s.time];
     }
   });
+
   saveState(state);
-  toast("پروفایل ذخیره شد", "success");
+  toast("مشخصات ذخیره شد — پرامپت آماده است", "success");
   navigate("coach-prompt");
 }
+
+function clearCoachDays() {
+  $$(".c-wday").forEach(el => { el.checked = false; });
+  const sel = $("#c-sessions");
+  if (sel) sel.value = "auto";
+  toast("روزها پاک شد — تصمیم با AI", "success");
+}
+
+function onCoachSessionsChange() {
+  const sel = $("#c-sessions");
+  if (!sel) return;
+  if (sel.value === "auto") {
+    $$(".c-wday").forEach(el => { el.checked = false; });
+  }
+}
+
 
 function buildAiPrompt() {
   const pr = state.profile;
@@ -1610,8 +1689,13 @@ ${pr.extraNotes ? "- توضیح اضافه شاگرد: " + pr.extraNotes : ""}
 function renderCoachPrompt() {
   const prompt = buildAiPrompt();
   return `
-    <div class="card">
-      <div class="card-title">۲) پرامپت آماده برای هوش مصنوعی</div>
+    <div class="card" style="border-color:var(--accent)">
+      <div class="coach-steps mb-2">
+        <span class="coach-step">۱ مشخصات</span>
+        <span class="coach-step active">۲ پرامپت</span>
+        <span class="coach-step">۳ وارد کردن</span>
+      </div>
+      <div class="card-title">پرامپت آماده برای هوش مصنوعی</div>
       <p style="font-size:0.9rem;margin-bottom:10px;line-height:1.6">
         این متن را کپی کنید و در ChatGPT / Claude / Gemini / هر AI دیگری بچسبانید.
         خروجی باید <strong>فقط JSON</strong> باشد.
@@ -1649,8 +1733,13 @@ function copyAiPrompt() {
 
 function renderCoachImport() {
   return `
-    <div class="card">
-      <div class="card-title">۳) وارد کردن خروجی هوش مصنوعی</div>
+    <div class="card" style="border-color:var(--accent)">
+      <div class="coach-steps mb-2">
+        <span class="coach-step">۱ مشخصات</span>
+        <span class="coach-step">۲ پرامپت</span>
+        <span class="coach-step active">۳ وارد کردن</span>
+      </div>
+      <div class="card-title">وارد کردن خروجی هوش مصنوعی</div>
       <p style="font-size:0.9rem;margin-bottom:10px;line-height:1.6">
         کل JSON را اینجا بچسبانید. اگر AI متن اضافه نوشته، فقط از اولین <code>{</code> تا آخرین <code>}</code> را کپی کنید.
       </p>
@@ -1840,6 +1929,8 @@ window.toggleSupp = toggleSupp;
 window.showSuppSettings = showSuppSettings;
 window.saveSuppSettings = saveSuppSettings;
 window.saveCoachProfileAndPrompt = saveCoachProfileAndPrompt;
+window.clearCoachDays = clearCoachDays;
+window.onCoachSessionsChange = onCoachSessionsChange;
 window.copyAiPrompt = copyAiPrompt;
 window.applyAiImport = applyAiImport;
 window.toggleTheme = toggleTheme;
