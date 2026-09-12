@@ -14,7 +14,7 @@
   padding: 8px 2px;
   border-radius: 10px;
   background: var(--bg-elevated);
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   font-size: 0.7rem;
   box-sizing: border-box;
 }
@@ -67,3 +67,55 @@
   white-space: nowrap;
 }
 a.btn { text-decoration: none; text-align: center; }
+
+/* Coach UI */
+.coach-steps {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.coach-step {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 0.72rem;
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.coach-step.active {
+  color: var(--primary);
+  border-color: var(--primary);
+  font-weight: 700;
+}
+.chip-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+.chip-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.chip-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+.coach-actions {
+  position: sticky;
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + 8px);
+  z-index: 30;
+  padding: 8px 0 4px;
+  background: linear-gradient(180deg, transparent, var(--bg) 30%);
+}
