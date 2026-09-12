@@ -39,7 +39,7 @@ const defaultState = () => ({
     setupDone: false
   },
   settings: {
-    workoutDays: [1, 2, 4, 5],
+    workoutDays: [6, 0, 2, 4],
     sessionOrder: [1, 2, 3, 4],
     preferredWorkoutTime: "17:00",
     reminderMinutesBefore: 30,
@@ -153,21 +153,29 @@ function getDayOfWeek() {
   return new Date().getDay();
 }
 
+const IR_WEEK_ORDER = [6, 0, 1, 2, 3, 4, 5];
+const DAY_NAMES_FA = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
+const DAY_NAMES_SHORT = ["ی", "د", "س", "چ", "پ", "ج", "ش"];
+
+function sortIranWeekDays(days) {
+  return [...days].sort((a, b) => IR_WEEK_ORDER.indexOf(a) - IR_WEEK_ORDER.indexOf(b));
+}
+
 function suggestWorkoutDays(sessionsPerWeek) {
   const n = Math.min(6, Math.max(2, Number(sessionsPerWeek) || 4));
   const patterns = {
-    2: [1, 4],
-    3: [1, 3, 5],
-    4: [1, 2, 4, 5],
-    5: [1, 2, 4, 5, 6],
-    6: [1, 2, 3, 4, 5, 6]
+    2: [6, 2],
+    3: [6, 1, 3],
+    4: [6, 0, 2, 4],
+    5: [6, 0, 2, 3, 5],
+    6: [6, 0, 1, 2, 3, 4]
   };
   return patterns[n] || patterns[4];
 }
 
 function buildDaySessionMap(state) {
   const days = (state.settings.workoutDays && state.settings.workoutDays.length)
-    ? [...state.settings.workoutDays].sort((a, b) => a - b)
+    ? sortIranWeekDays(state.settings.workoutDays)
     : suggestWorkoutDays(state.profile?.sessionsPerWeek || 4);
   const order = state.settings.sessionOrder || [];
   const map = {};
@@ -197,5 +205,3 @@ function isWorkoutDay(state) {
 function isSuppOnRestDay(timing) {
   return timing !== "pre" && timing !== "post";
 }
-
-const DAY_NAMES_FA = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
