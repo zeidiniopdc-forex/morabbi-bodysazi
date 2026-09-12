@@ -1,8 +1,9 @@
-const CACHE = "bb-tracker-v1";
+const CACHE = "bb-tracker-v2";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+  "./theme-light.css",
   "./data.js",
   "./storage.js",
   "./app.js",
