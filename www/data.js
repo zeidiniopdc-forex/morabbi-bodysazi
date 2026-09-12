@@ -1,3 +1,4 @@
+
 // ========== PROGRAM DATA (from user's plan - DO NOT change training logic) ==========
 const PROGRAM = {
   name: "برنامه ۴ جلسه‌ای سرشانه و بازو",
@@ -475,3 +476,60 @@ function parseRepRange(repsStr) {
   if (!isNaN(single)) return { min: single, max: single };
   return { min: 8, max: 12 };
 }
+
+
+// ========== نمایش آنلاین حرکت (جستجوی تصویر / ویدیو) ==========
+// queryEn: عبارت انگلیسی برای نتایج بهتر در یوتیوب و گوگل
+const EXERCISE_DEMO_MAP = {
+  "پرس سینه دستگاه": { q: "machine chest press form", fa: "پرس سینه دستگاه" },
+  "پرس بالا سینه دستگاه": { q: "machine incline chest press form", fa: "پرس بالا سینه دستگاه" },
+  "پرس سرشانه دستگاه با پشتی": { q: "seated machine shoulder press form", fa: "پرس سرشانه دستگاه" },
+  "پرس سرشانه دستگاه": { q: "seated machine shoulder press form", fa: "پرس سرشانه دستگاه" },
+  "نشر جانب سیم‌کش": { q: "cable lateral raise form", fa: "نشر جانب سیم کش" },
+  "نشر جانب دستگاه": { q: "machine lateral raise form", fa: "نشر جانب دستگاه" },
+  "نشر خم دمبل": { q: "dumbbell rear delt fly form", fa: "نشر خم دمبل" },
+  "فلای معکوس دستگاه": { q: "reverse pec deck fly form", fa: "فلای معکوس دستگاه" },
+  "پشت بازو سیم‌کش طنابی": { q: "cable rope tricep pushdown form", fa: "پشت بازو طنابی" },
+  "پشت بازو طنابی": { q: "cable rope tricep pushdown form", fa: "پشت بازو طنابی" },
+  "پشت بازو سیم‌کش بالای سر": { q: "overhead cable tricep extension form", fa: "پشت بازو بالای سر" },
+  "پشت بازو تک‌دست سیم‌کش": { q: "single arm cable tricep extension form", fa: "پشت بازو تک دست" },
+  "لت‌پول‌داون دست خنثی": { q: "neutral grip lat pulldown form", fa: "لت پولدان" },
+  "لت‌پول‌داون": { q: "lat pulldown form", fa: "لت پولدان" },
+  "قایقی دستگاه با تکیه‌گاه سینه": { q: "chest supported machine row form", fa: "قایقی سینه تکیه" },
+  "قایقی سینه‌تکیه": { q: "chest supported row form", fa: "قایقی سینه تکیه" },
+  "پرس پا": { q: "leg press form proper", fa: "پرس پا" },
+  "جلو پا دستگاه": { q: "leg extension machine form", fa: "جلو پا" },
+  "پشت پا نشسته": { q: "seated leg curl form", fa: "پشت پا نشسته" },
+  "پشت پا نشسته/خوابیده": { q: "lying leg curl form", fa: "پشت پا" },
+  "ساق نشسته": { q: "seated calf raise form", fa: "ساق نشسته" },
+  "جلو بازو لاری دستگاه": { q: "machine preacher curl form", fa: "جلو بازو لاری" },
+  "جلو بازو سیم‌کش": { q: "cable bicep curl form", fa: "جلو بازو سیم کش" },
+  "جلو بازو دمبل روی میز شیب‌دار": { q: "incline dumbbell curl form", fa: "جلو بازو شیب دار" },
+  "جلو بازو چکشی طنابی": { q: "cable rope hammer curl form", fa: "جلو بازو چکشی" },
+  "شراگ دستگاه/سیم‌کش": { q: "machine shrug form", fa: "شراگ" },
+  "کیک‌بک باسن دستگاه/سیم‌کش": { q: "cable glute kickback form", fa: "کیک بک باسن" },
+  "پالوف پرس": { q: "pallof press form", fa: "پالوف پرس" },
+  "پلانک بغل": { q: "side plank form", fa: "پلانک بغل" },
+  "ددباگ": { q: "dead bug exercise form", fa: "ددباگ" }
+};
+
+/** پیدا کردن کوئری دمو برای نام حرکت فارسی */
+function resolveExerciseDemo(name) {
+  if (!name) return { q: "gym exercise form", fa: "حرکت ورزشی", label: name || "" };
+  const exact = EXERCISE_DEMO_MAP[name];
+  if (exact) return { ...exact, label: name };
+  // تطبیق جزئی
+  const key = Object.keys(EXERCISE_DEMO_MAP).find(k => name.includes(k) || k.includes(name));
+  if (key) return { ...EXERCISE_DEMO_MAP[key], label: name };
+  // ساخت کوئری از خود نام
+  return { q: name + " exercise form", fa: name, label: name };
+}
+
+function exerciseDemoLinks(name) {
+  const d = resolveExerciseDemo(name);
+  const yt = "https://www.youtube.com/results?search_query=" + encodeURIComponent(d.q + " tutorial");
+  const img = "https://www.google.com/search?tbm=isch&q=" + encodeURIComponent(d.q);
+  const ytFa = "https://www.youtube.com/results?search_query=" + encodeURIComponent((d.fa || name) + " آموزش حرکت");
+  return { ...d, youtube: yt, youtubeFa: ytFa, images: img };
+}
+
