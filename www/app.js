@@ -111,7 +111,8 @@ function render() {
     reports: "گزارش‌ها",
     coach: "مربی هوشمند",
     "coach-prompt": "پرامپت AI",
-    "coach-import": "وارد کردن خروجی"
+    "coach-import": "وارد کردن خروجی",
+    "infographic-prompt": "اینفوگرافیک برنامه"
   };
   $("#page-title").textContent = titles[currentView] || "مربی";
 
@@ -133,6 +134,7 @@ function render() {
   else if (currentView === "coach") main.innerHTML = renderCoach();
   else if (currentView === "coach-prompt") main.innerHTML = renderCoachPrompt();
   else if (currentView === "coach-import") main.innerHTML = renderCoachImport();
+  else if (currentView === "infographic-prompt") main.innerHTML = renderInfographicPrompt();
   else main.innerHTML = "<p>صفحه یافت نشد</p>";
 
   bindViewEvents();
@@ -329,7 +331,8 @@ function renderWorkouts() {
         <button class="btn btn-primary btn-sm mt-1" onclick="event.stopPropagation();startWorkout(${s.id})">شروع این جلسه</button>
       </div>
     `).join("")}
-    <button class="btn btn-secondary btn-block mt-2" onclick="navigate('history')">تاریخچه جلسات</button>
+    <button class="btn btn-secondary btn-block mt-2" onclick="navigate('infographic-prompt')">🎨 پرامپت اینفوگرافیک برنامه</button>
+    <button class="btn btn-secondary btn-block mt-1" onclick="navigate('history')">تاریخچه جلسات</button>
   `;
 }
 
@@ -1286,6 +1289,10 @@ function renderMore() {
       <div class="session-name">🧠 مربی هوشمند</div>
       <div class="session-muscles">مشخصات → پرامپت AI → وارد کردن برنامه و مکمل</div>
     </div>
+    <div class="session-card" onclick="navigate('infographic-prompt')" style="border-color:var(--primary)">
+      <div class="session-name">🎨 اینفوگرافیک برنامه</div>
+      <div class="session-muscles">ساخت پرامپت برای تصویر/پوستر هفتگی از برنامه فعلی</div>
+    </div>
     <div class="session-card" onclick="navigate('history')"><div class="session-name">تاریخچه تمرین</div><div class="session-muscles">جلسات قبلی و رکوردها</div></div>
     <div class="session-card" onclick="navigate('nutrition')"><div class="session-name">تغذیه</div><div class="session-muscles">کالری و پروتئین روزانه</div></div>
     <div class="session-card" onclick="navigate('reports')"><div class="session-name">گزارش‌ها و ارزیابی</div><div class="session-muscles">پیشرفت دوره‌ای</div></div>
@@ -1901,6 +1908,122 @@ function importProgramJson() {
   applyAiImport();
 }
 
+
+/** خلاصه متنی برنامه برای اینفوگرافیک */
+function buildProgramSummaryForVisual() {
+  const prog = getActiveProgram(state);
+  const pr = state.profile;
+  const map = buildDaySessionMap(state);
+  const daysLine = IR_WEEK_ORDER.map(d => {
+    const sid = map[d];
+    if (sid == null) return DAY_NAMES_FA[d] + ": استراحت";
+    const s = prog.sessions.find(x => x.id === sid);
+    return DAY_NAMES_FA[d] + ": " + (s ? (s.shortName + " — " + s.name) : "تمرین");
+  }).join("\n");
+
+  const sessionsBlock = (prog.sessions || []).map(s => {
+    const moves = (s.exercises || []).map((e, i) =>
+      `  ${i + 1}. ${e.name} | ${e.muscle} | ${e.sets}×${e.reps} | استراحت ${e.rest} | RIR ${e.rir}`
+    ).join("\n");
+    return `【${s.shortName}】 ${s.name}\nعضلات: ${(s.muscles || []).join("، ")}\n${moves}`;
+  }).join("\n\n");
+
+  return {
+    name: prog.name || "برنامه تمرینی",
+    weeks: prog.weeks || 8,
+    sessionsPerWeek: prog.sessionsPerWeek || (prog.sessions || []).length,
+    daysLine,
+    sessionsBlock,
+    user: `${pr.gender === "female" ? "زن" : "مرد"}، ${pr.age || "؟"} ساله، وزن ${pr.weight || "؟"} کیلو`
+  };
+}
+
+/** پرامپت آماده برای ابزارهای ساخت اینفوگرافیک / تصویر AI */
+function buildInfographicPrompt() {
+  const s = buildProgramSummaryForVisual();
+  return `تو یک طراح اینفوگرافیک ورزشی حرفه‌ای هستی. یک پوستر/اینفوگرافیک تمیز و خوانا از برنامه تمرینی زیر طراحی کن.
+
+════════════════════════════════════
+مشخصات بصری (الزامی)
+════════════════════════════════════
+- زبان متن روی طرح: فارسی (راست‌چین)
+- قالب: عمودی موبایل یا مربع اینستاگرام (ترجیح ۱:۱ یا ۹:۱۶)
+- سبک: مدرن، مینیمال، باشگاهی، کنتراست بالا، خوانا از فاصله
+- پس‌زمینه تیره (سرمه‌ای/زغال) با اکسنت فیروزه‌ای یا بنفش نئون
+- بدون شلوغی؛ کارت‌های جدا برای هر روز/جلسه
+- فونت خوانا؛ اعداد واضح؛ آیکون ساده دمبل/عضلات در صورت نیاز
+- حاشیه و فاصله منظم؛ مناسب استوری و پست اینستاگرام
+- هیچ واترمارک یا متن انگلیسی اضافه ننویس مگر مخفف عضلات
+
+════════════════════════════════════
+محتوای برنامه (باید روی طرح بیاید)
+════════════════════════════════════
+عنوان: ${s.name}
+دوره: ${s.weeks} هفته · ${s.sessionsPerWeek} جلسه در هفته
+شاخص کاربر (اختیاری کوچک پایین طرح): ${s.user}
+
+تقویم هفتگی (شنبه تا جمعه):
+${s.daysLine}
+
+جزئیات جلسات:
+${s.sessionsBlock}
+
+════════════════════════════════════
+چیدمان پیشنهادی
+════════════════════════════════════
+1) هدر: عنوان برنامه + تعداد جلسات/هفته
+2) نوار هفته: ۷ خانه (ش ی د س چ پ ج) با برچسب جلسه یا استراحت
+3) بدنه: برای هر جلسه یک کارت شامل نام جلسه، عضلات، و فهرست فشرده حرکات (نام + ست×تکرار)
+4) فوتر کوچک: «ریکاوری مهم است» یا نکته ایمنی یک‌خطی
+
+اگر ابزار تو تصویر می‌سازد: یک تصویر واحد با تمام متن فارسی خوانا تولید کن.
+اگر ابزار تو متن می‌دهد: ساختار لایه‌ها، رنگ‌ها (hex) و متن هر بخش را مشخص کن تا در Canva/Figma پیاده شود.
+
+خروجی را مستقیم و بدون توضیح اضافه بده.`;
+}
+
+function renderInfographicPrompt() {
+  const prompt = buildInfographicPrompt();
+  const prog = getActiveProgram(state);
+  return `
+    <div class="card" style="border-color:var(--primary)">
+      <div class="card-title">🎨 پرامپت اینفوگرافیک برنامه</div>
+      <p style="font-size:0.9rem;line-height:1.65;margin-bottom:10px">
+        این متن را کپی کنید و در ابزارهایی مثل <strong>ChatGPT / Gemini / Claude</strong> (برای طرح و متن Canva)
+        یا <strong>Ideogram / Midjourney / DALL·E</strong> (برای تصویر) بچسبانید تا پوستر هفتگی برنامه ساخته شود.
+      </p>
+      <p class="text-muted" style="font-size:0.8rem">برنامه فعال: <strong>${prog.name || "—"}</strong> · ${(prog.sessions || []).length} جلسه</p>
+    </div>
+    <div class="card">
+      <textarea class="form-input" id="infographic-prompt-box" rows="18" style="font-size:0.78rem;line-height:1.5">${prompt.replace(/</g, "&lt;")}</textarea>
+      <button class="btn btn-primary btn-lg btn-block mt-2" onclick="copyInfographicPrompt()">کپی پرامپت اینفوگرافیک</button>
+      <button class="btn btn-secondary btn-block mt-1" onclick="navigate('workouts')">بازگشت به برنامه تمرینی</button>
+    </div>
+    <div class="card">
+      <div class="card-title">راهنمای سریع</div>
+      <p style="font-size:0.85rem;line-height:1.7" class="text-muted">
+        ۱. اول برنامه را با مربی هوشمند بسازید یا از برنامه فعلی استفاده کنید<br>
+        ۲. پرامپت را کپی کنید<br>
+        ۳. در AI تصویر/طراحی بچسبانید<br>
+        ۴. اگر متن فارسی در تصویر خراب بود، از AI بخواهید نسخه Canva (لایه‌ها + متن) بدهد
+      </p>
+    </div>
+  `;
+}
+
+function copyInfographicPrompt() {
+  const el = document.getElementById("infographic-prompt-box");
+  const str = el ? el.value : buildInfographicPrompt();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(str).then(() => toast("پرامپت اینفوگرافیک کپی شد", "success"))
+      .catch(() => { el?.select(); document.execCommand("copy"); toast("پرامپت کپی شد", "success"); });
+  } else {
+    el?.select();
+    document.execCommand("copy");
+    toast("پرامپت کپی شد", "success");
+  }
+}
+
 function exportProgram() {
   const prog = getActiveProgram(state);
   const payload = {
@@ -1976,6 +2099,8 @@ window.applyRecoveryPatternForCount = applyRecoveryPatternForCount;
 window.showProgramImport = showProgramImport;
 window.importProgramJson = importProgramJson;
 window.exportProgram = exportProgram;
+window.copyInfographicPrompt = copyInfographicPrompt;
+window.buildInfographicPrompt = buildInfographicPrompt;
 window.resetToDefaultProgram = resetToDefaultProgram;
 window.updateWorkoutTimeFromSupp = updateWorkoutTimeFromSupp;
 window.recalcAllSuppTimes = recalcAllSuppTimes;
