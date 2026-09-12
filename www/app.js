@@ -1,3 +1,4 @@
+
 // ========== MAIN APP ==========
 let state = loadState();
 let currentView = "dashboard";
@@ -32,6 +33,25 @@ function volumeOfSets(sets) {
   return sets.reduce((sum, s) => sum + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0);
 }
 
+// ---------- Theme ----------
+function applyTheme(theme) {
+  const t = theme === "light" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", t);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", t === "light" ? "#f1f5f9" : "#0f172a");
+  const btn = document.getElementById("btn-theme");
+  if (btn) btn.textContent = t === "light" ? "🌙" : "☀️";
+}
+
+function toggleTheme() {
+  state = loadState();
+  const next = (state.settings.theme === "light") ? "dark" : "light";
+  state.settings.theme = next;
+  saveState(state);
+  applyTheme(next);
+  toast(next === "light" ? "تم روشن" : "تم تاریک", "success");
+}
+
 // ---------- Navigation ----------
 function navigate(view) {
   if (state.activeWorkout && view !== "active-workout") {
@@ -54,6 +74,8 @@ $("#btn-refresh")?.addEventListener("click", () => {
 });
 
 $("#btn-settings-header")?.addEventListener("click", () => navigate("settings"));
+
+document.getElementById("btn-theme")?.addEventListener("click", toggleTheme);
 
 // ---------- Double Progression ----------
 function suggestNextWeight(exerciseId, lastSets, targetReps) {
@@ -212,13 +234,26 @@ function renderDashboard() {
       </div>
       <div class="card">
         <div class="card-title">مکمل‌های امروز</div>
-        <div class="card-value">${todaySuppLogs.filter(l => l.taken).length} / ${enabledSupps.length}</div>
+        <div class="card-value">${(() => {
+          const relevant = enabledSupps.filter(s => {
+            const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+            if (!def) return false;
+            return isWorkoutDay(state) || isSuppOnRestDay(def.timing);
+          });
+          const takenN = relevant.filter(s => todaySuppLogs.some(l => l.suppId === s.id && l.taken)).length;
+          return takenN + " / " + relevant.length;
+        })()}</div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">مکمل‌های امروز</div>
-      ${enabledSupps.map(s => {
+      <div class="card-title">مکمل‌های امروز ${isWorkoutDay(state) ? "(روز تمرین)" : "(روز ریکاوری)"}</div>
+      ${enabledSupps.filter(s => {
+        const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+        if (!def) return false;
+        if (isWorkoutDay(state)) return true;
+        return isSuppOnRestDay(def.timing);
+      }).map(s => {
         const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
         const taken = todaySuppLogs.some(l => l.suppId === s.id && l.taken);
         return `
@@ -226,11 +261,11 @@ function renderDashboard() {
             <div class="supp-icon">${taken ? "✅" : "💊"}</div>
             <div class="supp-info">
               <div class="supp-name">${def?.name || s.id}</div>
-              <div class="supp-dose">${s.dose} ${def?.unit || ""} · ${s.times?.join("، ") || s.time}</div>
+              <div class="supp-dose">${s.dose} ${def?.unit || ""} · ${s.times?.join("، ") || s.time}${!isSuppOnRestDay(def?.timing) ? " · فقط تمرین" : ""}</div>
             </div>
             ${!taken ? `<button class="btn btn-sm btn-success" onclick="markSuppTaken('${s.id}')">مصرف شد</button>` : `<span class="tag tag-success">انجام شد</span>`}
           </div>`;
-      }).join("") || "<p class='text-muted'>مکملی فعال نیست</p>"}
+      }).join("") || "<p class='text-muted'>مکملی برای امروز فعال نیست</p>"}
     </div>
 
     <div class="card">
@@ -254,8 +289,32 @@ function renderDashboard() {
 
 // ---------- WORKOUTS LIST ----------
 function renderWorkouts() {
+  const map = buildDaySessionMap(state);
+  const weekHtml = [0,1,2,3,4,5,6].map(d => {
+    const sid = map[d];
+    const isToday = getDayOfWeek() === d;
+    if (sid == null) {
+      return `<div style="text-align:center;padding:10px 4px;border-radius:10px;background:var(--bg-elevated);border:1px solid ${isToday ? "var(--primary)" : "transparent"};font-size:0.78rem">
+        <div style="font-weight:600">${DAY_NAMES_FA[d].slice(0,3)}</div>
+        <div class="text-muted" style="margin-top:4px">استراحت</div>
+        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">ریکاوری</div>
+      </div>`;
+    }
+    const sess = getActiveProgram(state).sessions.find(s => s.id === sid);
+    return `<div style="text-align:center;padding:10px 4px;border-radius:10px;background:var(--bg-card);border:1px solid ${isToday ? "var(--primary)" : "var(--border)"};font-size:0.78rem">
+      <div style="font-weight:600">${DAY_NAMES_FA[d].slice(0,3)}</div>
+      <div style="color:${sess?.color || "var(--primary)"};font-weight:700;margin-top:4px">${sess?.shortName || ""}</div>
+      <div class="text-muted" style="font-size:0.68rem;margin-top:2px">${(sess?.muscles || []).slice(0,2).join("·")}</div>
+    </div>`;
+  }).join("");
+
   return `
     <div class="safety-banner">حرکات ممنوع: اسکوات هالتر سنگین، ددلیفت، RDL، Good Morning، Bent-over Row سنگین، کرانچ سنگین، چرخش سنگین تنه.</div>
+    <div class="card">
+      <div class="card-title">برنامه هفتگی (ریکاوری لحاظ شده)</div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">${weekHtml}</div>
+      <p class="text-muted mt-1" style="font-size:0.8rem">روزهای استراحت برای ریکاوری عضله و سیستم عصبی ضروری‌اند. از بخش تنظیمات می‌توانید روزها را تغییر دهید.</p>
+    </div>
     ${getActiveProgram(state).sessions.map(s => `
       <div class="session-card" onclick="showSessionDetail(${s.id})">
         <div class="session-header">
@@ -623,13 +682,25 @@ function renderSupplements() {
     </div>
     <div class="card">
       <div class="card-title">برنامه امروز (مکمل‌های روشن)</div>
-      ${state.supplements.filter(s => s.enabled).map(s => {
+      <p style="font-size:0.85rem;margin-bottom:8px;color:var(--text-muted)">
+        ${isWorkoutDay(state)
+          ? "🏋️ روز تمرین — مکمل‌های قبل/بعد تمرین + روزانه"
+          : "😴 روز استراحت / ریکاوری — فقط مکمل‌های روزانه (کراتین، ویتامین، ...). پری‌ورک‌اوت و بعد تمرین امروز لازم نیست."}
+      </p>
+      ${state.supplements.filter(s => {
+        if (!s.enabled) return false;
+        const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+        if (!def) return false;
+        if (isWorkoutDay(state)) return true;
+        return isSuppOnRestDay(def.timing);
+      }).map(s => {
         const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
         if (!def) return "";
         const t = getSuppEffectiveTime(s, def);
         const taken = state.supplementLogs.some(l => l.date === today && l.suppId === s.id && l.taken);
+        const dayTag = isSuppOnRestDay(def.timing) ? "" : " <span class=\"tag tag-primary\">فقط تمرین</span>";
         return `<div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.9rem">
-          <span>${taken ? "✅" : "⏰"} <strong>${t}</strong> — ${def.name} (${s.dose} ${def.unit})</span>
+          <span>${taken ? "✅" : "⏰"} <strong>${t}</strong> — ${def.name} (${s.dose} ${def.unit})${dayTag}</span>
           ${!taken ? `<button class="btn btn-sm btn-success" onclick="markSuppTaken('${s.id}')">مصرف</button>` : ""}
         </div>`;
       }).join("") || "<p class='text-muted'>هیچ مکملی روشن نیست</p>"}
@@ -1003,8 +1074,39 @@ function saveSettings() {
   state.profile.startDate = $("#set-start")?.value || state.profile.startDate;
   state.settings.preferredWorkoutTime = $("#set-wtime")?.value || "17:00";
   state.settings.reminderMinutesBefore = Number($("#set-remind")?.value) || 30;
+  // روزهای تمرین انتخاب‌شده
+  const checked = $$(".set-wday:checked").map(el => Number(el.value)).sort((a,b)=>a-b);
+  if (checked.length) {
+    state.settings.workoutDays = checked;
+    state.profile.sessionsPerWeek = checked.length;
+  }
+  // همگام‌سازی زمان مکمل‌ها
+  const wt = state.settings.preferredWorkoutTime;
+  state.supplements.forEach(s => {
+    const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
+    if (def && s.autoTime !== false) {
+      s.time = computeSuppTime(def.timing, def.offsetMin, wt);
+      s.times = [s.time];
+    }
+  });
   saveState(state);
   toast("تنظیمات ذخیره شد", "success");
+  render();
+}
+
+function applySuggestedDays() {
+  const n = state.profile.sessionsPerWeek || (state.settings.workoutDays || []).length || 4;
+  state.settings.workoutDays = suggestWorkoutDays(n);
+  // اگر تعداد جلسات برنامه با روزها هم‌خوان نیست، sessionOrder را کوتاه/تکرار نکن
+  const prog = getActiveProgram(state);
+  const sessIds = (prog.sessions || []).map(s => s.id);
+  state.settings.sessionOrder = sessIds.slice(0, state.settings.workoutDays.length);
+  while (state.settings.sessionOrder.length < state.settings.workoutDays.length) {
+    state.settings.sessionOrder.push(sessIds[state.settings.sessionOrder.length % sessIds.length] || 1);
+  }
+  saveState(state);
+  toast("روزهای تمرین با فاصله ریکاوری تنظیم شد", "success");
+  render();
 }
 
 function resetAllData() {
@@ -1166,24 +1268,38 @@ function renderCoach() {
         <div class="form-group">
           <label class="form-label">تعداد جلسه در هفته</label>
           <select class="form-select" id="c-sessions">
-            ${[3,4,5,6].map(n => `<option value="${n}" ${(pr.sessionsPerWeek||4)==n?"selected":""}>${n}</option>`).join("")}
+            <option value="auto" ${pr.sessionsPerWeek==="auto"||pr.sessionsPerWeek==null?"selected":""}>🤖 به انتخاب هوش مصنوعی</option>
+            ${[3,4,5,6].map(n => `<option value="${n}" ${pr.sessionsPerWeek==n?"selected":""}>${n} جلسه</option>`).join("")}
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">مدت هر جلسه (دقیقه)</label>
-          <input class="form-input" type="number" id="c-duration" value="${pr.sessionDuration || 70}" />
+          <label class="form-label">مدت هر جلسه</label>
+          <select class="form-select" id="c-duration">
+            <option value="auto" ${pr.sessionDuration==="auto"||pr.sessionDuration==null?"selected":""}>🤖 به انتخاب هوش مصنوعی</option>
+            <option value="45" ${pr.sessionDuration==45?"selected":""}>حدود ۴۵ دقیقه</option>
+            <option value="60" ${pr.sessionDuration==60?"selected":""}>حدود ۶۰ دقیقه</option>
+            <option value="70" ${pr.sessionDuration==70?"selected":""}>حدود ۷۰ دقیقه</option>
+            <option value="75" ${pr.sessionDuration==75?"selected":""}>حدود ۷۵ دقیقه</option>
+            <option value="90" ${pr.sessionDuration==90?"selected":""}>حدود ۹۰ دقیقه</option>
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label">تجهیزات</label>
           <select class="form-select" id="c-equip">
-            <option value="gym" ${pr.equipment!=="home"?"selected":""}>باشگاه کامل</option>
+            <option value="gym" ${pr.equipment!=="home"&&pr.equipment!=="machines"?"selected":""}>باشگاه کامل</option>
             <option value="home" ${pr.equipment==="home"?"selected":""}>خانگی / محدود</option>
             <option value="machines" ${pr.equipment==="machines"?"selected":""}>عمدتاً دستگاه</option>
           </select>
         </div>
         <div class="form-group">
           <label class="form-label">هفته‌های برنامه</label>
-          <input class="form-input" type="number" id="c-weeks" value="8" />
+          <select class="form-select" id="c-weeks">
+            <option value="auto" ${pr.planWeeks==="auto"?"selected":""}>🤖 به انتخاب هوش مصنوعی</option>
+            <option value="4" ${pr.planWeeks==4?"selected":""}>۴ هفته</option>
+            <option value="6" ${pr.planWeeks==6?"selected":""}>۶ هفته</option>
+            <option value="8" ${!pr.planWeeks||pr.planWeeks==8?"selected":""}>۸ هفته</option>
+            <option value="12" ${pr.planWeeks==12?"selected":""}>۱۲ هفته</option>
+          </select>
         </div>
       </div>
       <div class="form-group">
@@ -1207,11 +1323,14 @@ function saveCoachProfileAndPrompt() {
   state.profile.experienceYears = Number($("#c-exp")?.value) || 0;
   state.profile.limitations = lims;
   state.profile.trainingGoals = goals;
-  state.profile.sessionsPerWeek = Number($("#c-sessions")?.value) || 4;
-  state.profile.sessionDuration = Number($("#c-duration")?.value) || 70;
+  const sessVal = $("#c-sessions")?.value || "auto";
+  const durVal = $("#c-duration")?.value || "auto";
+  const weeksVal = $("#c-weeks")?.value || "8";
+  state.profile.sessionsPerWeek = sessVal === "auto" ? "auto" : (Number(sessVal) || 4);
+  state.profile.sessionDuration = durVal === "auto" ? "auto" : (Number(durVal) || 70);
   state.profile.equipment = $("#c-equip")?.value || "gym";
   state.profile.extraNotes = $("#c-extra")?.value || "";
-  state.profile.planWeeks = Number($("#c-weeks")?.value) || 8;
+  state.profile.planWeeks = weeksVal === "auto" ? "auto" : (Number(weeksVal) || 8);
   state.profile.setupDone = true;
   state.settings.preferredWorkoutTime = $("#c-wtime")?.value || "17:00";
   // recalc supplement times
@@ -1243,14 +1362,29 @@ function buildAiPrompt() {
   if ((pr.limitations || []).includes("knee")) forbidden.push("اسکوات عمیق سنگین", "لانج سنگین اگر دردناک است");
   if ((pr.limitations || []).includes("shoulder")) forbidden.push("پرس نظامی پشت گردن", "پلاور سنگین پشت سر");
 
+  const sessAuto = pr.sessionsPerWeek === "auto" || pr.sessionsPerWeek == null;
+  const durAuto = pr.sessionDuration === "auto" || pr.sessionDuration == null;
+  const weeksAuto = pr.planWeeks === "auto";
+  const sessRule = sessAuto
+    ? "تعداد جلسات در هفته را خودت بر اساس سابقه، اهداف، محدودیت‌ها و ریکاوری کاربر انتخاب کن (معمولاً بین ۳ تا ۵؛ برای فرد با سابقه بالا و تمرکز روی چند عضله، ۴ منطقی است مگر دلیل بهتری باشد)."
+    : `تعداد جلسات در هفته باید دقیقاً ${pr.sessionsPerWeek} باشد.`;
+  const durRule = durAuto
+    ? "مدت هر جلسه را خودت طوری طراحی کن که واقع‌بینانه و قابل اجرا باشد (معمولاً ۴۵ تا ۹۰ دقیقه؛ تعداد حرکات و ست‌ها را با این مدت هماهنگ کن)."
+    : `مدت تقریبی هر جلسه حدود ${pr.sessionDuration} دقیقه باشد؛ حجم هر جلسه را با این زمان هماهنگ کن.`;
+  const weeksRule = weeksAuto
+    ? "طول دوره برنامه را خودت بین ۶ تا ۱۲ هفته پیشنهاد بده و در فیلد weeks بنویس."
+    : `weeks باید ${pr.planWeeks || 8} باشد.`;
+  const weeksJson = weeksAuto ? '"weeks": 8' : `"weeks": ${pr.planWeeks || 8}`;
+  const sessJson = sessAuto ? '"sessionsPerWeek": 4' : `"sessionsPerWeek": ${pr.sessionsPerWeek || 4}`;
+
   return `تو یک مربی بدنسازی و متخصص تغذیه ورزشی هستی. فقط یک JSON معتبر برگردان. هیچ متنی قبل یا بعد از JSON ننویس. از { شروع کن و با } تمام کن.
 
 خروجی باید دقیقاً این ساختار را داشته باشد:
 {
   "program": {
     "name": "نام برنامه",
-    "weeks": ${pr.planWeeks || 8},
-    "sessionsPerWeek": ${pr.sessionsPerWeek || 4},
+    ${weeksJson},
+    ${sessJson},
     "sessions": [
       {
         "id": 1,
@@ -1292,9 +1426,10 @@ function buildAiPrompt() {
 creatine, whey, casein, caffeine, betaalanine, citrulline, citrulline_pure, betaine, taurine, electrolytes, vitd, omega3, magnesium, zinc, multivitamin, ashwagandha, vitamin_c, collagen, bcaa, glutamine, fatburner, preworkout_blend
 
 قوانین برنامه:
-- تعداد جلسات: ${pr.sessionsPerWeek || 4}
-- مدت تقریبی هر جلسه: حدود ${pr.sessionDuration || 70} دقیقه
-- هفته‌ها: ${pr.planWeeks || 8}
+- ${sessRule}
+- ${durRule}
+- ${weeksRule}
+- تعداد آبجکت‌های داخل sessions باید با sessionsPerWeek یکی باشد
 - sets عدد باشد؛ reps مثل "6-10" یا "12-20"؛ rest مثل "90ث" یا "2 دقیقه"؛ rir مثل "1-2"
 - id حرکات یکتا: s1e1, s1e2, s2e1 ...
 - رنگ جلسات از: "#22d3ee", "#a78bfa", "#fbbf24", "#34d399", "#f87171"
@@ -1458,6 +1593,13 @@ function applyAiImport() {
     const prog = normalizeProgram(data);
     state.customProgram = prog;
     state.settings.sessionOrder = prog.sessions.map(s => s.id);
+    const spw = prog.sessionsPerWeek || prog.sessions.length || 4;
+    state.profile.sessionsPerWeek = spw;
+    if (Array.isArray(prog.workoutDays) && prog.workoutDays.length) {
+      state.settings.workoutDays = prog.workoutDays.map(Number).filter(d => d >= 0 && d <= 6);
+    } else {
+      state.settings.workoutDays = suggestWorkoutDays(spw);
+    }
     state.profile.startDate = state.profile.startDate || getTodayStr();
     state.profile.setupDone = true;
 
@@ -1517,6 +1659,8 @@ function resetToDefaultProgram() {
   if (!confirm("برنامه سفارشی حذف و برنامه پیش‌فرض برگردد؟")) return;
   state.customProgram = null;
   state.settings.sessionOrder = [1, 2, 3, 4];
+  state.settings.workoutDays = [1, 2, 4, 5];
+  state.profile.sessionsPerWeek = 4;
   saveState(state);
   toast("برنامه پیش‌فرض فعال شد", "success");
   render();
@@ -1548,6 +1692,8 @@ window.saveSuppSettings = saveSuppSettings;
 window.saveCoachProfileAndPrompt = saveCoachProfileAndPrompt;
 window.copyAiPrompt = copyAiPrompt;
 window.applyAiImport = applyAiImport;
+window.toggleTheme = toggleTheme;
+window.applySuggestedDays = applySuggestedDays;
 window.showProgramImport = showProgramImport;
 window.importProgramJson = importProgramJson;
 window.exportProgram = exportProgram;
@@ -1572,6 +1718,8 @@ function checkReminders() {
   state.supplements.filter(s => s.enabled && s.reminder !== false).forEach(s => {
     const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
     if (!def) return;
+    // در روز استراحت، مکمل‌های فقط‌تمرین را یادآوری نکن
+    if (!isWorkoutDay(state) && !isSuppOnRestDay(def.timing)) return;
     const t = getSuppEffectiveTime(s, def);
     if (t === hhmm) {
       const already = state.supplementLogs.some(l => l.date === today && l.suppId === s.id && l.taken);
@@ -1600,4 +1748,7 @@ window.addEventListener("beforeinstallprompt", (e) => {
 });
 
 // Init
+applyTheme((loadState().settings && loadState().settings.theme) || "dark");
 render();
+
+  
