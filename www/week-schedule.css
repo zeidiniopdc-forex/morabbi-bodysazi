@@ -60,3 +60,10 @@
   .week-day-name { font-size: 0.7rem; }
   .week-day-sess { font-size: 0.62rem; }
 }
+.demo-btn {
+  flex-shrink: 0;
+  padding: 6px 10px !important;
+  font-size: 0.78rem !important;
+  white-space: nowrap;
+}
+a.btn { text-decoration: none; text-align: center; }
