@@ -1,0 +1,62 @@
+/* Weekly schedule — Iranian week (Sat–Fri), mobile-safe */
+.week-schedule {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.week-day-cell {
+  min-width: 0;
+  text-align: center;
+  padding: 8px 2px;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid transparent;
+  font-size: 0.7rem;
+  box-sizing: border-box;
+}
+.week-day-train {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+.week-day-name {
+  font-weight: 700;
+  font-size: 0.75rem;
+  margin-bottom: 4px;
+}
+.week-day-sess {
+  font-weight: 700;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.week-day-rest {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  margin-top: 2px;
+}
+.day-check-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.day-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+@media (max-width: 380px) {
+  .week-day-cell { padding: 6px 1px; }
+  .week-day-name { font-size: 0.7rem; }
+  .week-day-sess { font-size: 0.62rem; }
+}
