@@ -345,7 +345,7 @@ function showSessionDetail(id) {
           <div class="exercise-item">
             <div class="flex-between" style="align-items:flex-start;gap:8px">
               <div class="exercise-name" style="flex:1">${i + 1}. ${e.name}</div>
-              <button type="button" class="btn btn-sm btn-secondary demo-btn" onclick="event.stopPropagation();showExerciseDemo(${JSON.stringify(e.name)})">🖼 فرم</button>
+              <button type="button" class="btn btn-sm btn-secondary demo-btn" onclick="event.stopPropagation();showExerciseDemo(decodeURIComponent('${encodeURIComponent(e.name)}'))">🖼 فرم</button>
             </div>
             <div class="exercise-meta">
               <span class="tag tag-accent">${e.muscle}</span>
@@ -369,21 +369,56 @@ function closeModal() {
 }
 
 /** مودال نمایش فرم حرکت — لینک تصویر گوگل و ویدیوی یوتیوب */
+/** باز کردن لینک خارجی — کار در مرورگر و WebView/Capacitor */
+function openExternalLink(url) {
+  if (!url) return;
+  try {
+    const Cap = window.Capacitor;
+    if (Cap?.Plugins?.Browser?.open) {
+      Cap.Plugins.Browser.open({ url });
+      return;
+    }
+  } catch (e) { /* ignore */ }
+  try {
+    const w = window.open(url, "_blank", "noopener,noreferrer");
+    if (w) return;
+  } catch (e) { /* ignore */ }
+  // آخرین راه: رفتن مستقیم (مثلاً WebView محدود)
+  window.location.href = url;
+}
+
+function getExerciseDemoLinksSafe(name) {
+  try {
+    if (typeof exerciseDemoLinks === "function") return exerciseDemoLinks(name);
+  } catch (e) { /* ignore */ }
+  const label = name || "حرکت";
+  const q = encodeURIComponent(String(label) + " exercise form");
+  const qFa = encodeURIComponent(String(label) + " آموزش حرکت بدنسازی");
+  return {
+    label,
+    youtube: "https://www.youtube.com/results?search_query=" + q + "+tutorial",
+    youtubeFa: "https://www.youtube.com/results?search_query=" + qFa,
+    images: "https://www.google.com/search?tbm=isch&q=" + q
+  };
+}
+
 function showExerciseDemo(name) {
-  const links = exerciseDemoLinks(name);
+  const links = getExerciseDemoLinksSafe(name);
+  // ذخیره موقت برای دکمه‌ها (جلوگیری از مشکل کوتیشن در onclick)
+  window.__demoLinks = links;
   const html = `
     <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
       <div class="modal-sheet">
         <div class="modal-title">فرم حرکت</div>
         <p style="text-align:center;font-weight:700;margin-bottom:12px">${links.label}</p>
         <p class="text-muted" style="font-size:0.85rem;line-height:1.6;margin-bottom:14px">
-          برای یادگیری فرم صحیح، یکی از گزینه‌ها را باز کنید. ترجیحاً ویدیوی کوتاه با زاویه جانبی ببینید و همان دامنه و کنترل را در باشگاه اجرا کنید.
+          برای یادگیری فرم صحیح یکی از گزینه‌ها را باز کنید. ویدیوی کوتاه با زاویه جانبی بهترین راهنماست.
         </p>
-        <a class="btn btn-primary btn-block" href="${links.youtubeFa}" target="_blank" rel="noopener noreferrer">▶ ویدیوی آموزشی (فارسی)</a>
-        <a class="btn btn-secondary btn-block mt-1" href="${links.youtube}" target="_blank" rel="noopener noreferrer">▶ YouTube (English form)</a>
-        <a class="btn btn-secondary btn-block mt-1" href="${links.images}" target="_blank" rel="noopener noreferrer">🖼 تصاویر فرم در گوگل</a>
-        <button class="btn btn-secondary btn-block mt-2" onclick="closeModal()">بستن</button>
-        <p class="text-muted text-center mt-2" style="font-size:0.75rem">لینک‌ها در مرورگر باز می‌شوند · نیاز به اینترنت</p>
+        <button type="button" class="btn btn-primary btn-block" onclick="openExternalLink(window.__demoLinks.youtubeFa)">▶ ویدیوی آموزشی (فارسی)</button>
+        <button type="button" class="btn btn-secondary btn-block mt-1" onclick="openExternalLink(window.__demoLinks.youtube)">▶ YouTube (English form)</button>
+        <button type="button" class="btn btn-secondary btn-block mt-1" onclick="openExternalLink(window.__demoLinks.images)">🖼 تصاویر فرم در گوگل</button>
+        <button type="button" class="btn btn-secondary btn-block mt-2" onclick="closeModal()">بستن</button>
+        <p class="text-muted text-center mt-2" style="font-size:0.75rem">نیاز به اینترنت · در اپ ممکن است مرورگر سیستم باز شود</p>
       </div>
     </div>`;
   $("#modal-root").innerHTML = html;
@@ -473,7 +508,7 @@ function renderActiveWorkout() {
         <div class="flex-between mb-1" style="gap:8px;align-items:flex-start">
           <div class="exercise-name" style="flex:1">${ei + 1}. ${ex.name}</div>
           <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
-            <button type="button" class="btn btn-sm btn-secondary demo-btn" onclick="showExerciseDemo(${JSON.stringify(ex.name)})">🖼</button>
+            <button type="button" class="btn btn-sm btn-secondary demo-btn" onclick="showExerciseDemo(decodeURIComponent('${encodeURIComponent(ex.name)}'))">🖼</button>
             <span class="tag tag-accent">${ex.muscle}</span>
           </div>
         </div>
@@ -1935,6 +1970,7 @@ window.copyAiPrompt = copyAiPrompt;
 window.applyAiImport = applyAiImport;
 window.toggleTheme = toggleTheme;
 window.showExerciseDemo = showExerciseDemo;
+window.openExternalLink = openExternalLink;
 window.applySuggestedDays = applySuggestedDays;
 window.applyRecoveryPatternForCount = applyRecoveryPatternForCount;
 window.showProgramImport = showProgramImport;
