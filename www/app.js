@@ -145,148 +145,132 @@ function renderDashboard() {
   const todaySessId = getTodaySessionId(state);
   const todaySess = getActiveProgram(state).sessions.find(s => s.id === todaySessId);
   const week = getWeekNumber(state.profile.startDate);
+  const totalWeeks = getActiveProgram(state).weeks || 8;
   const doneSessions = state.workoutHistory.filter(w => w.completed).length;
-  const missedEstimate = Math.max(0, (week - 1) * 4 + (todaySess ? 0 : 0) - doneSessions);
-
   const latestWeight = state.bodyLogs.length
     ? [...state.bodyLogs].sort((a, b) => b.date.localeCompare(a.date))[0].weight
     : state.profile.weight;
-
-  const weekWeights = state.bodyLogs
-    .filter(l => {
-      const d = new Date(l.date);
-      const now = new Date();
-      return (now - d) / 86400000 <= 7;
-    })
-    .map(l => l.weight);
-  const avgWeek = weekWeights.length
-    ? (weekWeights.reduce((a, b) => a + b, 0) / weekWeights.length).toFixed(1)
-    : latestWeight;
-
-  const latestWaist = state.bodyLogs.find(l => l.waist)?.waist || "—";
-
-  // today supplements
   const today = getTodayStr();
-  const todaySuppLogs = state.supplementLogs.filter(l => l.date === today);
   const enabledSupps = state.supplements.filter(s => s.enabled);
-
-  // active workout resume
+  const takenToday = state.supplementLogs.filter(l => l.date === today).length;
   const hasActive = !!state.activeWorkout;
-
+  const prog = getActiveProgram(state);
+  const name = state.profile.name || "ورزشکار";
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? "صبح بخیر" : hour < 18 ? "عصر بخیر" : "شب بخیر";
   const lims = state.profile.limitations || [];
   const safetyText = lims.includes("l4l5")
-    ? "⚠️ محدودیت L4-L5 فعال است. از حرکات ممنوعه استفاده نکنید. در صورت درد تیرکشنده، بی‌حسی یا گزگز حرکت را متوقف کنید."
-    : (lims.length ? "⚠️ محدودیت‌های ثبت‌شده را در تمرین رعایت کنید." : "برای ساخت برنامه شخصی از بخش مربی هوشمند استفاده کنید.");
+    ? "محدودیت L4-L5 فعال است — حرکات ممنوع را رعایت کنید."
+    : (lims.length ? "محدودیت‌های ثبت‌شده را در تمرین رعایت کنید." : "برنامه شخصی‌سازی‌شده با مربی هوشمند بسازید.");
 
-  let html = `
-    <div class="safety-banner">${safetyText}</div>
-    <div class="card" style="border-color:var(--accent)">
-      <div class="card-title">🧠 مربی هوشمند</div>
-      <p style="font-size:0.9rem;margin-bottom:10px">مشخصات و اهدافت را وارد کن → پرامپت بگیر → به AI بده → خروجی را وارد کن تا برنامه و مکمل‌ها خودکار تنظیم شوند.</p>
-      <button class="btn btn-primary btn-block" onclick="navigate('coach')">شروع / به‌روزرسانی برنامه با AI</button>
+  const weekPct = Math.min(100, Math.round((week / totalWeeks) * 100));
+  const dayName = DAY_NAMES_FA[getDayOfWeek()];
+
+  return `
+    <div class="home-hero anim-fade-up">
+      <div class="home-hero-glow"></div>
+      <div class="home-hero-top">
+        <div>
+          <div class="home-greet">${greet} 👋</div>
+          <div class="home-name">${name}</div>
+        </div>
+        <div class="home-week-badge">
+          <span class="home-week-num">هفته ${week}</span>
+          <span class="home-week-sub">از ${totalWeeks}</span>
+        </div>
+      </div>
+      <div class="home-progress-track">
+        <div class="home-progress-fill" style="width:${weekPct}%"></div>
+      </div>
+      <div class="home-hero-meta">
+        <span>${dayName}</span>
+        <span>·</span>
+        <span>${prog.name || "برنامه تمرینی"}</span>
+      </div>
     </div>
 
     ${hasActive ? `
-      <div class="card" style="border-color:var(--primary)">
-        <div class="card-title">جلسه ناتمام</div>
-        <p style="margin-bottom:10px">${getActiveProgram(state).sessions.find(s => s.id === state.activeWorkout.sessionId)?.name || ""}</p>
-        <button class="btn btn-primary btn-block" onclick="resumeWorkout()">ادامه جلسه</button>
+    <div class="feature-card fc-pulse anim-fade-up delay-1" onclick="resumeWorkout()">
+      <div class="fc-icon">▶️</div>
+      <div class="fc-body">
+        <div class="fc-title">ادامه جلسه ناتمام</div>
+        <div class="fc-sub">${prog.sessions.find(s => s.id === state.activeWorkout.sessionId)?.name || "جلسه فعال"}</div>
       </div>
-    ` : ""}
+      <div class="fc-arrow">‹</div>
+    </div>` : ""}
 
-    <div class="card ${todaySess ? "today" : ""}">
-      <div class="card-title">جلسه امروز</div>
-      ${todaySess ? `
-        <div class="session-name" style="color:${todaySess.color}">${todaySess.name}</div>
-        <div class="session-muscles">${todaySess.muscles.join(" · ")}</div>
-        <button class="btn btn-primary btn-block mt-2" onclick="startWorkout(${todaySess.id})">شروع تمرین</button>
-      ` : `
-        <p class="text-muted">امروز روز تمرین برنامه‌ریزی‌شده نیست.</p>
-        <p class="text-muted" style="font-size:0.85rem">می‌توانید از بخش تمرین یک جلسه را دستی شروع کنید.</p>
-      `}
-    </div>
-
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">وزن فعلی</div>
-        <div class="card-value">${latestWeight} <small style="font-size:0.9rem">کیلو</small></div>
+    <div class="stat-row anim-fade-up delay-1">
+      <div class="stat-chip sc-cyan">
+        <div class="sc-val">${latestWeight ?? "—"}</div>
+        <div class="sc-lbl">وزن (کیلو)</div>
       </div>
-      <div class="card">
-        <div class="card-title">میانگین هفتگی</div>
-        <div class="card-value">${avgWeek}</div>
+      <div class="stat-chip sc-violet">
+        <div class="sc-val">${doneSessions}</div>
+        <div class="sc-lbl">جلسات کامل</div>
+      </div>
+      <div class="stat-chip sc-amber">
+        <div class="sc-val">${takenToday}/${enabledSupps.length || 0}</div>
+        <div class="sc-lbl">مکمل امروز</div>
       </div>
     </div>
 
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">دور کمر</div>
-        <div class="card-value">${latestWaist}${latestWaist !== "—" ? " سم" : ""}</div>
+    <div class="feature-card fc-today anim-fade-up delay-2 ${todaySess ? "has-session" : "rest-day"}">
+      <div class="fc-icon">${todaySess ? "💪" : "😴"}</div>
+      <div class="fc-body">
+        <div class="fc-title">${todaySess ? "تمرین امروز" : "روز استراحت"}</div>
+        <div class="fc-sub">${todaySess ? (todaySess.name + " · " + (todaySess.muscles || []).slice(0, 3).join("، ")) : "ریکاوری و مکمل‌های روزانه"}</div>
       </div>
-      <div class="card">
-        <div class="card-title">هفته برنامه</div>
-        <div class="card-value">${week}<small style="font-size:0.9rem"> / ۸</small></div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${(week/8)*100}%"></div></div>
-      </div>
+      ${todaySess ? `<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();startWorkout(${todaySess.id})">شروع</button>` : `<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();navigate('supplements')">مکمل</button>`}
     </div>
 
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-title">جلسات انجام‌شده</div>
-        <div class="card-value text-success">${doneSessions}</div>
-      </div>
-      <div class="card">
-        <div class="card-title">مکمل‌های امروز</div>
-        <div class="card-value">${(() => {
-          const relevant = enabledSupps.filter(s => {
-            const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
-            if (!def) return false;
-            return isWorkoutDay(state) || isSuppOnRestDay(def.timing);
-          });
-          const takenN = relevant.filter(s => todaySuppLogs.some(l => l.suppId === s.id && l.taken)).length;
-          return takenN + " / " + relevant.length;
-        })()}</div>
-      </div>
+    <div class="section-label anim-fade-up delay-2">دسترسی سریع</div>
+    <div class="quick-grid anim-fade-up delay-3">
+      <button type="button" class="quick-tile qt-coach" onclick="navigate('coach')">
+        <span class="qt-icon">🧠</span>
+        <span class="qt-title">مربی هوشمند</span>
+        <span class="qt-sub">ساخت برنامه با AI</span>
+      </button>
+      <button type="button" class="quick-tile qt-train" onclick="navigate('workouts')">
+        <span class="qt-icon">🏋️</span>
+        <span class="qt-title">تمرین</span>
+        <span class="qt-sub">برنامه هفتگی</span>
+      </button>
+      <button type="button" class="quick-tile qt-supp" onclick="navigate('supplements')">
+        <span class="qt-icon">💊</span>
+        <span class="qt-title">مکمل‌ها</span>
+        <span class="qt-sub">زمان‌بندی روزانه</span>
+      </button>
+      <button type="button" class="quick-tile qt-prog" onclick="navigate('progress')">
+        <span class="qt-icon">📊</span>
+        <span class="qt-title">پیشرفت</span>
+        <span class="qt-sub">وزن و اندازه‌ها</span>
+      </button>
+      <button type="button" class="quick-tile qt-info" onclick="navigate('infographic-prompt')">
+        <span class="qt-icon">🎨</span>
+        <span class="qt-title">اینفوگرافیک</span>
+        <span class="qt-sub">پوستر برنامه</span>
+      </button>
+      <button type="button" class="quick-tile qt-more" onclick="navigate('more')">
+        <span class="qt-icon">☰</span>
+        <span class="qt-title">بیشتر</span>
+        <span class="qt-sub">تنظیمات و گزارش</span>
+      </button>
     </div>
 
-    <div class="card">
-      <div class="card-title">مکمل‌های امروز ${isWorkoutDay(state) ? "(روز تمرین)" : "(روز ریکاوری)"}</div>
-      ${enabledSupps.filter(s => {
-        const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
-        if (!def) return false;
-        if (isWorkoutDay(state)) return true;
-        return isSuppOnRestDay(def.timing);
-      }).map(s => {
-        const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
-        const taken = todaySuppLogs.some(l => l.suppId === s.id && l.taken);
-        return `
-          <div class="supp-item">
-            <div class="supp-icon">${taken ? "✅" : "💊"}</div>
-            <div class="supp-info">
-              <div class="supp-name">${def?.name || s.id}</div>
-              <div class="supp-dose">${s.dose} ${def?.unit || ""} · ${s.times?.join("، ") || s.time}${!isSuppOnRestDay(def?.timing) ? " · فقط تمرین" : ""}</div>
-            </div>
-            ${!taken ? `<button class="btn btn-sm btn-success" onclick="markSuppTaken('${s.id}')">مصرف شد</button>` : `<span class="tag tag-success">انجام شد</span>`}
-          </div>`;
-      }).join("") || "<p class='text-muted'>مکملی برای امروز فعال نیست</p>"}
-    </div>
+    <div class="safety-soft anim-fade-up delay-3">${safetyText}</div>
 
-    <div class="card">
-      <div class="card-title">اهداف هفتگی حجم</div>
-      <div style="font-size:0.85rem;line-height:1.8">
-        🔥 سرشانه: ۱۸–۱۹ ست · جلوبازو: ۱۱ · پشت‌بازو: ۱۲<br>
-        پشت: ۱۲ · سینه: ۸ · پا: ۱۳–۱۵ · میان‌تنه: ۶
+    <div class="creator-card anim-fade-up delay-4">
+      <div class="creator-badge">سازنده و مربی</div>
+      <div class="creator-name">امین زیدی</div>
+      <div class="creator-role">مربی رسمی فدراسیون پرورش اندام ایران</div>
+      <div class="creator-actions">
+        <a class="creator-btn" href="tel:09981455945" onclick="event.stopPropagation()">📞 تماس</a>
+        <button type="button" class="creator-btn" onclick="openExternalLink('https://wa.me/989981455945')">واتساپ</button>
+        <button type="button" class="creator-btn" onclick="openExternalLink('https://t.me/+989981455945')">تلگرام</button>
       </div>
+      <div class="creator-phone" dir="ltr">0998 145 5945</div>
     </div>
-
-    ${week >= 6 ? `
-      <div class="card" style="border-color:var(--warning)">
-        <div class="card-title">⏰ ارزیابی دوره‌ای</div>
-        <p>زمان ارزیابی برنامه و بررسی پیشرفت فرا رسیده است.</p>
-        <button class="btn btn-secondary btn-block mt-1" onclick="navigate('reports')">مشاهده گزارش</button>
-      </div>
-    ` : ""}
   `;
-  return html;
 }
 
 // ---------- WORKOUTS LIST ----------
@@ -1285,25 +1269,35 @@ function renderMore() {
   const prog = getActiveProgram(state);
   const isCustom = !!(state.customProgram && state.customProgram.sessions);
   return `
-    <div class="session-card" onclick="navigate('coach')" style="border-color:var(--accent)">
-      <div class="session-name">🧠 مربی هوشمند</div>
-      <div class="session-muscles">مشخصات → پرامپت AI → وارد کردن برنامه و مکمل</div>
+    <div class="creator-card featured anim-fade-up">
+      <div class="creator-badge">سازنده اپلیکیشن</div>
+      <div class="creator-avatar">AZ</div>
+      <div class="creator-name">امین زیدی</div>
+      <div class="creator-role">مربی رسمی فدراسیون پرورش اندام ایران</div>
+      <p class="creator-bio">طراحی برنامه تمرینی ایمن و علمی با تمرکز بر هایپرتروفی، کات و محدودیت‌های اسکلتی-عضلانی.</p>
+      <div class="creator-actions">
+        <a class="creator-btn primary" href="tel:09981455945">📞 تماس مستقیم</a>
+        <button type="button" class="creator-btn wa" onclick="openExternalLink('https://wa.me/989981455945')">واتساپ</button>
+        <button type="button" class="creator-btn tg" onclick="openExternalLink('https://t.me/+989981455945')">تلگرام</button>
+      </div>
+      <div class="creator-phone" dir="ltr">0998 145 5945</div>
     </div>
-    <div class="session-card" onclick="navigate('infographic-prompt')" style="border-color:var(--primary)">
-      <div class="session-name">🎨 اینفوگرافیک برنامه</div>
-      <div class="session-muscles">ساخت پرامپت برای تصویر/پوستر هفتگی از برنامه فعلی</div>
-    </div>
-    <div class="session-card" onclick="navigate('history')"><div class="session-name">تاریخچه تمرین</div><div class="session-muscles">جلسات قبلی و رکوردها</div></div>
-    <div class="session-card" onclick="navigate('nutrition')"><div class="session-name">تغذیه</div><div class="session-muscles">کالری و پروتئین روزانه</div></div>
-    <div class="session-card" onclick="navigate('reports')"><div class="session-name">گزارش‌ها و ارزیابی</div><div class="session-muscles">پیشرفت دوره‌ای</div></div>
-    <div class="session-card" onclick="navigate('settings')"><div class="session-name">تنظیمات و پروفایل</div><div class="session-muscles">وزن، ساعت تمرین، محدودیت‌ها</div></div>
 
-    <div class="card mt-2">
-      <div class="card-title">برنامه تمرینی فعال</div>
-      <p style="font-weight:600">${prog.name || "بدون نام"}</p>
-      <p class="text-muted" style="font-size:0.85rem">${prog.sessions?.length || 0} جلسه · ${isCustom ? "سفارشی / از AI" : "پیش‌فرض"}</p>
-      <button class="btn btn-primary btn-block mt-1" onclick="navigate('coach-import')">وارد کردن خروجی AI</button>
-      <button class="btn btn-secondary btn-block mt-1" onclick="exportProgram()">کپی JSON برنامه فعلی</button>
+    <div class="section-label anim-fade-up delay-1">منو</div>
+    <div class="menu-list anim-fade-up delay-1">
+      <button type="button" class="menu-item" onclick="navigate('coach')"><span class="mi-icon">🧠</span><span class="mi-text"><strong>مربی هوشمند</strong><small>ساخت و به‌روزرسانی برنامه با AI</small></span><span class="mi-chev">‹</span></button>
+      <button type="button" class="menu-item" onclick="navigate('infographic-prompt')"><span class="mi-icon">🎨</span><span class="mi-text"><strong>اینفوگرافیک برنامه</strong><small>پرامپت پوستر هفتگی</small></span><span class="mi-chev">‹</span></button>
+      <button type="button" class="menu-item" onclick="navigate('history')"><span class="mi-icon">📜</span><span class="mi-text"><strong>تاریخچه تمرین</strong><small>جلسات و رکوردها</small></span><span class="mi-chev">‹</span></button>
+      <button type="button" class="menu-item" onclick="navigate('nutrition')"><span class="mi-icon">🍽️</span><span class="mi-text"><strong>تغذیه</strong><small>کالری و پروتئین</small></span><span class="mi-chev">‹</span></button>
+      <button type="button" class="menu-item" onclick="navigate('reports')"><span class="mi-icon">📈</span><span class="mi-text"><strong>گزارش‌ها</strong><small>ارزیابی دوره‌ای</small></span><span class="mi-chev">‹</span></button>
+      <button type="button" class="menu-item" onclick="navigate('settings')"><span class="mi-icon">⚙️</span><span class="mi-text"><strong>تنظیمات</strong><small>تم، روزها، پروفایل</small></span><span class="mi-chev">‹</span></button>
+    </div>
+
+    <div class="card anim-fade-up delay-2">
+      <div class="card-title">برنامه فعال</div>
+      <p style="font-size:0.9rem;margin-bottom:8px">${prog.name || "—"} · ${(prog.sessions || []).length} جلسه · ${prog.weeks || "?"} هفته ${isCustom ? "· سفارشی" : ""}</p>
+      <button class="btn btn-secondary btn-block" onclick="exportProgram()">کپی JSON برنامه</button>
+      <button class="btn btn-secondary btn-block mt-1" onclick="showProgramImport()">وارد کردن JSON</button>
       ${isCustom ? `<button class="btn btn-danger btn-block mt-1" onclick="resetToDefaultProgram()">بازگشت به برنامه پیش‌فرض</button>` : ""}
     </div>
   `;
