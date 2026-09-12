@@ -290,30 +290,31 @@ function renderDashboard() {
 // ---------- WORKOUTS LIST ----------
 function renderWorkouts() {
   const map = buildDaySessionMap(state);
-  const weekHtml = [0,1,2,3,4,5,6].map(d => {
+  // هفته ایرانی: شنبه تا جمعه
+  const weekHtml = IR_WEEK_ORDER.map(d => {
     const sid = map[d];
     const isToday = getDayOfWeek() === d;
+    const border = isToday ? "var(--primary)" : "var(--border)";
     if (sid == null) {
-      return `<div style="text-align:center;padding:10px 4px;border-radius:10px;background:var(--bg-elevated);border:1px solid ${isToday ? "var(--primary)" : "transparent"};font-size:0.78rem">
-        <div style="font-weight:600">${DAY_NAMES_FA[d].slice(0,3)}</div>
-        <div class="text-muted" style="margin-top:4px">استراحت</div>
-        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">ریکاوری</div>
+      return `<div class="week-day-cell" style="border-color:${isToday ? "var(--primary)" : "transparent"}">
+        <div class="week-day-name">${DAY_NAMES_SHORT[d]}</div>
+        <div class="week-day-rest">استراحت</div>
       </div>`;
     }
     const sess = getActiveProgram(state).sessions.find(s => s.id === sid);
-    return `<div style="text-align:center;padding:10px 4px;border-radius:10px;background:var(--bg-card);border:1px solid ${isToday ? "var(--primary)" : "var(--border)"};font-size:0.78rem">
-      <div style="font-weight:600">${DAY_NAMES_FA[d].slice(0,3)}</div>
-      <div style="color:${sess?.color || "var(--primary)"};font-weight:700;margin-top:4px">${sess?.shortName || ""}</div>
-      <div class="text-muted" style="font-size:0.68rem;margin-top:2px">${(sess?.muscles || []).slice(0,2).join("·")}</div>
+    const short = (sess?.shortName || "جلسه").replace("جلسه ", "ج");
+    return `<div class="week-day-cell week-day-train" style="border-color:${border}">
+      <div class="week-day-name">${DAY_NAMES_SHORT[d]}</div>
+      <div class="week-day-sess" style="color:${sess?.color || "var(--primary)"}">${short}</div>
     </div>`;
   }).join("");
 
   return `
     <div class="safety-banner">حرکات ممنوع: اسکوات هالتر سنگین، ددلیفت، RDL، Good Morning، Bent-over Row سنگین، کرانچ سنگین، چرخش سنگین تنه.</div>
     <div class="card">
-      <div class="card-title">برنامه هفتگی (ریکاوری لحاظ شده)</div>
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">${weekHtml}</div>
-      <p class="text-muted mt-1" style="font-size:0.8rem">روزهای استراحت برای ریکاوری عضله و سیستم عصبی ضروری‌اند. از بخش تنظیمات می‌توانید روزها را تغییر دهید.</p>
+      <div class="card-title">برنامه هفتگی · شنبه تا جمعه</div>
+      <div class="week-schedule">${weekHtml}</div>
+      <p class="text-muted mt-1" style="font-size:0.8rem">روزهای استراحت برای ریکاوری ضروری‌اند. تغییر روزها از تنظیمات.</p>
     </div>
     ${getActiveProgram(state).sessions.map(s => `
       <div class="session-card" onclick="showSessionDetail(${s.id})">
@@ -1026,7 +1027,29 @@ function saveNutrition() {
 // ---------- SETTINGS ----------
 function renderSettings() {
   const lims = state.profile.limitations || [];
+  const days = state.settings.workoutDays || suggestWorkoutDays(state.profile.sessionsPerWeek || 4);
+  const theme = state.settings.theme || "dark";
+  const dayChecks = IR_WEEK_ORDER.map(d => {
+    const checked = days.includes(d) ? "checked" : "";
+    return `<label class="day-check"><input type="checkbox" class="set-wday" value="${d}" ${checked} /> ${DAY_NAMES_FA[d]}</label>`;
+  }).join("");
+  const schedulePreview = IR_WEEK_ORDER.map(d => {
+    const map = buildDaySessionMap(state);
+    const sid = map[d];
+    if (sid == null) {
+      return `<div class="week-day-cell"><div class="week-day-name">${DAY_NAMES_SHORT[d]}</div><div class="week-day-rest">—</div></div>`;
+    }
+    const sess = getActiveProgram(state).sessions.find(s => s.id === sid);
+    return `<div class="week-day-cell week-day-train"><div class="week-day-name">${DAY_NAMES_SHORT[d]}</div><div class="week-day-sess" style="color:${sess?.color || "var(--primary)"}">${(sess?.shortName || "").replace("جلسه ","ج")}</div></div>`;
+  }).join("");
   return `
+    <div class="card">
+      <div class="card-title">ظاهر برنامه</div>
+      <div class="flex-between">
+        <span>تم ${theme === "light" ? "روشن" : "تاریک"}</span>
+        <button class="btn btn-secondary btn-sm" onclick="toggleTheme()">${theme === "light" ? "🌙 تاریک" : "☀️ روشن"}</button>
+      </div>
+    </div>
     <div class="card">
       <div class="card-title">پروفایل</div>
       <div class="form-group">
@@ -1049,6 +1072,14 @@ function renderSettings() {
       </div>
     </div>
     <div class="card">
+      <div class="card-title">روزهای تمرین (هفته ایرانی · شنبه تا جمعه)</div>
+      <p style="font-size:0.85rem;margin-bottom:8px;color:var(--text-muted)">با فاصله ریکاوری انتخاب کنید یا پیشنهاد خودکار بزنید.</p>
+      <div class="day-check-grid">${dayChecks}</div>
+      <button class="btn btn-secondary btn-sm btn-block mt-1" onclick="applySuggestedDays()">پیشنهاد خودکار با ریکاوری</button>
+      <div class="card-title mt-2">پیش‌نمایش هفته</div>
+      <div class="week-schedule">${schedulePreview}</div>
+    </div>
+    <div class="card">
       <div class="card-title">زمان تمرین</div>
       <input class="form-input" type="time" id="set-wtime" value="${state.settings.preferredWorkoutTime}" />
       <div class="form-group mt-1">
@@ -1063,7 +1094,7 @@ function renderSettings() {
     </div>
     <button class="btn btn-primary btn-block" onclick="saveSettings()">ذخیره تنظیمات</button>
     <button class="btn btn-danger btn-block mt-2" onclick="resetAllData()">پاک کردن تمام داده‌ها</button>
-    <p class="text-muted text-center mt-2" style="font-size:0.8rem">نسخه ۲.۰ · داده‌ها فقط روی این دستگاه</p>
+    <p class="text-muted text-center mt-2" style="font-size:0.8rem">نسخه ۲.۲ · هفته ایرانی · مربی سطح جهانی</p>
   `;
 }
 
@@ -1353,7 +1384,7 @@ function buildAiPrompt() {
   const gender = pr.gender === "female" ? "زن" : "مرد";
   const limLabels = (pr.limitations || []).map(id => LIMITATION_OPTIONS.find(o => o.id === id)?.label || id);
   const goalLabels = (pr.trainingGoals || []).map(id => GOAL_OPTIONS.find(o => o.id === id)?.label || id);
-  const equipMap = { gym: "باشگاه کامل", home: "خانگی/محدود", machines: "عمدتاً دستگاه و سیم‌کش" };
+  const equipMap = { gym: "باشگاه کامل (دستگاه + سیم‌کش + دمبل + هالتر)", home: "خانگی/محدود", machines: "عمدتاً دستگاه و سیم‌کش" };
 
   const forbidden = [];
   if ((pr.limitations || []).includes("l4l5")) {
@@ -1365,46 +1396,68 @@ function buildAiPrompt() {
   const sessAuto = pr.sessionsPerWeek === "auto" || pr.sessionsPerWeek == null;
   const durAuto = pr.sessionDuration === "auto" || pr.sessionDuration == null;
   const weeksAuto = pr.planWeeks === "auto";
+  const spw = (sessAuto ? 4 : (Number(pr.sessionsPerWeek) || 4));
+  const suggestedDays = suggestWorkoutDays(spw);
+  const dayNames = suggestedDays.map(d => DAY_NAMES_FA[d]).join("، ");
+
   const sessRule = sessAuto
-    ? "تعداد جلسات در هفته را خودت بر اساس سابقه، اهداف، محدودیت‌ها و ریکاوری کاربر انتخاب کن (معمولاً بین ۳ تا ۵؛ برای فرد با سابقه بالا و تمرکز روی چند عضله، ۴ منطقی است مگر دلیل بهتری باشد)."
+    ? "تعداد جلسات را بر اساس سابقه، اهداف، محدودیت‌ها و ظرفیت ریکاوری انتخاب کن (معمولاً ۳–۵؛ برای سابقه بالا و تمرکز روی چند عضله، ۴ منطقی است مگر دلیل قوی‌تری باشد)."
     : `تعداد جلسات در هفته باید دقیقاً ${pr.sessionsPerWeek} باشد.`;
   const durRule = durAuto
-    ? "مدت هر جلسه را خودت طوری طراحی کن که واقع‌بینانه و قابل اجرا باشد (معمولاً ۴۵ تا ۹۰ دقیقه؛ تعداد حرکات و ست‌ها را با این مدت هماهنگ کن)."
-    : `مدت تقریبی هر جلسه حدود ${pr.sessionDuration} دقیقه باشد؛ حجم هر جلسه را با این زمان هماهنگ کن.`;
+    ? "مدت هر جلسه واقع‌بینانه باشد (۴۵–۹۰ دقیقه). تعداد حرکات و ست‌ها را با این مدت هماهنگ کن؛ از حجم غیرقابل‌اجرا پرهیز کن."
+    : `مدت تقریبی هر جلسه حدود ${pr.sessionDuration} دقیقه؛ حجم را با این زمان هماهنگ کن.`;
   const weeksRule = weeksAuto
-    ? "طول دوره برنامه را خودت بین ۶ تا ۱۲ هفته پیشنهاد بده و در فیلد weeks بنویس."
+    ? "طول دوره را بین ۶ تا ۱۲ هفته در فیلد weeks بنویس (برای هایپرتروفی معمولاً ۸–۱۰)."
     : `weeks باید ${pr.planWeeks || 8} باشد.`;
   const weeksJson = weeksAuto ? '"weeks": 8' : `"weeks": ${pr.planWeeks || 8}`;
   const sessJson = sessAuto ? '"sessionsPerWeek": 4' : `"sessionsPerWeek": ${pr.sessionsPerWeek || 4}`;
 
-  return `تو یک مربی بدنسازی و متخصص تغذیه ورزشی هستی. فقط یک JSON معتبر برگردان. هیچ متنی قبل یا بعد از JSON ننویس. از { شروع کن و با } تمام کن.
+  const bmiHint = (pr.weight && pr.height)
+    ? (pr.weight / ((pr.height / 100) ** 2)).toFixed(1)
+    : null;
 
-خروجی باید دقیقاً این ساختار را داشته باشد:
+  return `تو یک مربی بدنسازی سطح جهانی (World-Class Strength & Hypertrophy Coach) هستی؛ دانش تو بر پایه شواهد علمی به‌روز (Schoenfeld, Israetel/RP, Helms, ACSM) و تجربه مربیگری حرفه‌ای است. فقط یک JSON معتبر برگردان. هیچ متنی قبل یا بعد از JSON ننویس. از { شروع کن و با } تمام کن.
+
+════════════════════════════════════
+نقش و استاندارد خروجی
+════════════════════════════════════
+- مثل مربی سطح ۱ المپیک / مربی خصوصی نخبگان فکر کن: دقیق، ایمن، قابل‌اجرا، بدون کلیشه.
+- برنامه باید برای همین فرد شخصی‌سازی شود؛ کپی عمومی نده.
+- اولویت‌ها به ترتیب: ۱) ایمنی و محدودیت‌های پزشکی  ۲) پیشرفت پایدار  ۳) پایبندی (adherence)  ۴) بهینه‌سازی جزئی.
+- از حجم افراطی، حرکات پرریسک غیرضروری، و برنامه‌های نمایشی پرهیز کن.
+
+════════════════════════════════════
+ساختار JSON الزامی
+════════════════════════════════════
 {
   "program": {
-    "name": "نام برنامه",
+    "name": "نام کوتاه و دقیق برنامه به فارسی",
     ${weeksJson},
     ${sessJson},
+    "workoutDays": ${JSON.stringify(suggestedDays)},
+    "periodization": "توضیح ۱–۲ جمله‌ای مدل پیشرفت (مثلاً double progression روی ست‌های ترکیبی)",
+    "weeklyVolumeTargets": { "سرشانه": "18-20", "سینه": "10-12", "پشت": "12-16", "جلو بازو": "10-12", "پشت بازو": "10-14", "پا": "12-16", "میان‌تنه": "6-8" },
     "sessions": [
       {
         "id": 1,
-        "name": "عنوان جلسه",
+        "name": "عنوان جلسه (عضلات اصلی)",
         "shortName": "جلسه ۱",
         "color": "#22d3ee",
         "muscles": ["عضله1", "عضله2"],
-        "warmUp": "توضیح گرم‌کردن",
-        "note": "",
+        "warmUp": "گرم‌کردن اختصاصی ۵–۱۰ دقیقه",
+        "note": "نکته مربیگری کوتاه در صورت نیاز",
         "exercises": [
           {
             "id": "s1e1",
-            "name": "نام حرکت فارسی",
-            "muscle": "گروه عضلانی",
+            "name": "نام حرکت به فارسی",
+            "muscle": "گروه عضلانی اصلی",
             "sets": 3,
-            "reps": "8-12",
-            "rest": "2 دقیقه",
-            "rir": "2",
-            "note": "",
-            "safety": ""
+            "reps": "6-10",
+            "rest": "2-3 دقیقه",
+            "rir": "1-2",
+            "tempo": "2-0-1",
+            "note": "کوئینگ فرم یا پیشرفت",
+            "safety": "هشدار ایمنی در صورت نیاز"
           }
         ]
       }
@@ -1412,50 +1465,72 @@ function buildAiPrompt() {
   },
   "supplements": [
     { "id": "creatine", "enabled": true, "dose": 5 },
-    { "id": "whey", "enabled": true, "dose": 30 },
-    { "id": "caffeine", "enabled": true, "dose": 150 }
+    { "id": "whey", "enabled": true, "dose": 30 }
   ],
   "nutrition": {
     "proteinGrams": 180,
     "calorieDeficit": 400,
-    "notes": "نکته کوتاه تغذیه"
-  }
+    "carbsNote": "کربوهیدرات اطراف تمرین",
+    "notes": "نکته تغذیه کوتاه و عملی"
+  },
+  "coachNotes": "۲–۴ جمله راهنمای اجرای برنامه، علائم بیش‌تمرینی، و زمان reassessment"
 }
 
-شناسه‌های مجاز مکمل (فقط از این لیست id استفاده کن):
+شناسه‌های مجاز مکمل (فقط از این لیست):
 creatine, whey, casein, caffeine, betaalanine, citrulline, citrulline_pure, betaine, taurine, electrolytes, vitd, omega3, magnesium, zinc, multivitamin, ashwagandha, vitamin_c, collagen, bcaa, glutamine, fatburner, preworkout_blend
 
-قوانین برنامه:
-- ${sessRule}
-- ${durRule}
-- ${weeksRule}
-- تعداد آبجکت‌های داخل sessions باید با sessionsPerWeek یکی باشد
-- sets عدد باشد؛ reps مثل "6-10" یا "12-20"؛ rest مثل "90ث" یا "2 دقیقه"؛ rir مثل "1-2"
-- id حرکات یکتا: s1e1, s1e2, s2e1 ...
-- رنگ جلسات از: "#22d3ee", "#a78bfa", "#fbbf24", "#34d399", "#f87171"
-- نام حرکات فارسی و واقعی
-- برای هایپرتروفی RIR عمدتاً 1 تا 3؛ Failure فقط گاهی در ایزوله
+════════════════════════════════════
+اصول طراحی برنامه (اجباری)
+════════════════════════════════════
+1) ${sessRule}
+2) ${durRule}
+3) ${weeksRule}
+4) تعداد آبجکت‌های sessions = sessionsPerWeek
+5) workoutDays: آرایه روزها با اعداد JS getDay (۶=شنبه، ۰=یکشنبه، ۱=دوشنبه، ۲=سه‌شنبه، ۳=چهارشنبه، ۴=پنجشنبه، ۵=جمعه). هفته در ایران از شنبه شروع می‌شود. الگوی پیشنهادی برای این کاربر: [${suggestedDays.join(", ")}] یعنی ${dayNames}. فاصله ریکاوری بین جلسات مشابه عضلانی ≥ ۴۸ ساعت.
+6) ترتیب جلسات را طوری بچین که تداخل خستگی عضلات همپوشان کم شود (مثلاً سینه/سرشانه را پشت‌سرهم سنگین نگذار مگر با فاصله کافی).
+7) انتخاب حرکت:
+   - ابتدا الگوی حرکتی ترکیبی ایمن متناسب تجهیزات و محدودیت
+   - سپس ایزوله برای نقاط ضعف / هایپرتروفی هدف
+   - نام حرکات واقعی و رایج باشگاه‌های ایران، به فارسی
+8) حجم و شدت (هایپرتروفی):
+   - ست‌های مؤثر هفتگی نزدیک MEV→MAV؛ از MRV مزمن پرهیز کن
+   - RIR بیشتر حرکات ترکیبی: ۱–۳ ؛ ایزوله: ۰–۲ ؛ failure فقط گاهی روی ایزوله آخر
+   - پیشرفت: double progression (اول سقف تکرار، بعد افزایش وزنه کوچک)
+9) استراحت: ترکیبی سنگین ۲–۳ دقیقه؛ ایزوله ۶۰–۹۰ث
+10) sets عدد صحیح؛ reps مثل "6-10" یا "12-15"؛ rest مثل "90ث" یا "2 دقیقه"؛ rir مثل "1-2"
+11) id حرکات یکتا: s1e1, s1e2, s2e1 ...
+12) رنگ جلسات فقط از: "#22d3ee", "#a78bfa", "#fbbf24", "#34d399", "#f87171", "#fb923c"
+13) warmUp کوتاه و عملی؛ برای محدودیت کمر/شانه کوئینگ ایمنی در safety بنویس
+14) اگر محدودیت L4-L5: فقط الگوهای کم‌فشار روی دیسک (پرس پا با کمر متکی، دستگاه‌ها، لت، قایقی سینه‌تکیه، پشت‌پا، جلوپا، پالوف، ددباگ، پلانک بغل). از لود محوری و خم‌شدن تحت بار اجتناب.
 
-مشخصات کاربر:
+════════════════════════════════════
+مکمل و تغذیه
+════════════════════════════════════
+- فقط مکمل‌های با شواهد قوی/مفید برای این هدف را enabled:true کن
+- کراتین مونوهیدرات تقریباً همیشه برای حجم/قدرت مناسب است (هر روز حتی استراحت)
+- وی فقط اگر رسیدن به پروتئین روزانه سخت است
+- pre/post (کافئین، سیترولین، …) فقط اگر به عملکرد کمک می‌کند؛ در روز استراحت لازم نیست
+- BCAA / گلوتامین / چربی‌سوز را مگر دلیل قوی enabled:false بگذار
+- پروتئین: حدود ۱.۶–۲.۲ گرم به ازای هر کیلو وزن بدن (با در نظر گرفتن کات/حجم)
+- اگر هدف کاهش چربی است کسری ملایم (حدود ۳۰۰–۵۰۰ کیلوکالری) و حفظ پروتئین بالا
+
+════════════════════════════════════
+پروفایل این شاگرد
+════════════════════════════════════
 - ${gender}، ${pr.age || "?"} ساله
-- وزن: ${pr.weight || "?"} کیلو · قد: ${pr.height || "?"} سم
+- وزن: ${pr.weight || "?"} کیلو · قد: ${pr.height || "?"} سم${bmiHint ? ` · BMI≈${bmiHint}` : ""}
 - سابقه تمرین: ${pr.experienceYears || 0} سال
 - ساعت تمرین معمول: ${wt}
 - تجهیزات: ${equipMap[pr.equipment] || pr.equipment || "باشگاه"}
 - محدودیت‌ها: ${limLabels.length ? limLabels.join("، ") : "ندارد"}
 - اهداف: ${goalLabels.length ? goalLabels.join("، ") : "عمومی"}
-${forbidden.length ? "- حرکات ممنوع: " + forbidden.join("، ") : ""}
-${(pr.limitations || []).includes("l4l5") ? "- جایگزین‌های کم‌ریسک کمر: پرس پا، دستگاه‌ها، قایقی سینه‌تکیه، لت‌پول‌داون، پشت پا، جلو پا، پالوف پرس، ددباگ، پلانک بغل" : ""}
-${pr.extraNotes ? "- توضیح اضافه کاربر: " + pr.extraNotes : ""}
-
-مکمل‌ها:
-- فقط مکمل‌های واقعاً مفید برای این کاربر را enabled:true کن
-- کراتین و وی معمولاً برای هایپرتروفی مناسب‌اند
-- BCAA/گلوتامین/چربی‌سوز را مگر دلیل قوی، enabled:false بگذار
-- دوزها واقع‌بینانه باشد
+${forbidden.length ? "- حرکات ممنوع / پرریسک: " + forbidden.join("، ") : ""}
+${(pr.limitations || []).includes("l4l5") ? "- پروتکل کمر: کمر خنثی، تکیه‌گاه، قطع حرکت با درد تیرکشنده/بی‌حسی/گزگز" : ""}
+${pr.extraNotes ? "- توضیح اضافه شاگرد: " + pr.extraNotes : ""}
 
 فقط JSON نهایی را برگردان.`;
 }
+
 
 function renderCoachPrompt() {
   const prompt = buildAiPrompt();
@@ -1659,7 +1734,7 @@ function resetToDefaultProgram() {
   if (!confirm("برنامه سفارشی حذف و برنامه پیش‌فرض برگردد؟")) return;
   state.customProgram = null;
   state.settings.sessionOrder = [1, 2, 3, 4];
-  state.settings.workoutDays = [1, 2, 4, 5];
+  state.settings.workoutDays = [6, 0, 2, 4];
   state.profile.sessionsPerWeek = 4;
   saveState(state);
   toast("برنامه پیش‌فرض فعال شد", "success");
