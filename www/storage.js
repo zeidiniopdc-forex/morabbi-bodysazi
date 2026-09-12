@@ -1,3 +1,4 @@
+
 // ========== LOCAL STORAGE LAYER ==========
 const STORAGE_KEY = "bb_tracker_v2";
 
@@ -27,9 +28,18 @@ const defaultState = () => ({
     startWaist: null,
     limitations: ["l4l5"],
     trainingGoals: ["shoulder", "arms", "fatloss", "retain"],
-    sessionsPerWeek: 4,
+    sessionsPerWeek: "auto",
     sessionDuration: 70,
     equipment: "gym",
+    activityLevel: "moderate", // sedentary | light | moderate | high
+    sleepHours: 7,
+    stressLevel: "medium", // low | medium | high
+    recoveryQuality: "medium",
+    bodyFatEstimate: null,
+    waistCm: null,
+    trainStyle: "hypertrophy", // hypertrophy | strength | mixed | recomp
+    jobActivity: "desk", // desk | standing | physical
+    includeBodyPhotos: false,
     goals: {
       protein: 180,
       deficit: 400,
@@ -39,13 +49,15 @@ const defaultState = () => ({
     setupDone: false
   },
   settings: {
-    workoutDays: [6, 0, 2, 4],
+    workoutDays: [], // خالی = واگذاری به AI تا کاربر یا import روز را قفل کند
     sessionOrder: [1, 2, 3, 4],
     preferredWorkoutTime: "17:00",
     reminderMinutesBefore: 30,
     restTimerSound: true,
+    supplementSound: true,
+    workoutReminderSound: true,
     units: "kg",
-    theme: "dark"
+    theme: "dark" // dark | light
   },
   customProgram: null,
   supplements: buildDefaultSupplements(),
@@ -153,26 +165,29 @@ function getDayOfWeek() {
   return new Date().getDay();
 }
 
-const IR_WEEK_ORDER = [6, 0, 1, 2, 3, 4, 5];
-const DAY_NAMES_FA = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
+/** ترتیب نمایش هفته ایرانی: شنبه → جمعه (مقادیر = getDay() جاوااسکریپت) */
+const IR_WEEK_ORDER = [6, 0, 1, 2, 3, 4, 5]; // شنبه یکشنبه دوشنبه سه‌شنبه چهارشنبه پنجشنبه جمعه
 const DAY_NAMES_SHORT = ["ی", "د", "س", "چ", "پ", "ج", "ش"];
 
 function sortIranWeekDays(days) {
   return [...days].sort((a, b) => IR_WEEK_ORDER.indexOf(a) - IR_WEEK_ORDER.indexOf(b));
 }
 
+/** پیشنهاد روزهای تمرین با ریکاوری — تقویم ایرانی (شنبه شروع هفته) */
 function suggestWorkoutDays(sessionsPerWeek) {
   const n = Math.min(6, Math.max(2, Number(sessionsPerWeek) || 4));
+  // 6=شنبه، 0=یکشنبه، 1=دوشنبه، 2=سه‌شنبه، 3=چهارشنبه، 4=پنجشنبه، 5=جمعه
   const patterns = {
-    2: [6, 2],
-    3: [6, 1, 3],
-    4: [6, 0, 2, 4],
-    5: [6, 0, 2, 3, 5],
-    6: [6, 0, 1, 2, 3, 4]
+    2: [6, 2],           // شنبه + سه‌شنبه
+    3: [6, 1, 3],        // شنبه، دوشنبه، چهارشنبه
+    4: [6, 0, 2, 4],     // شنبه، یکشنبه، سه‌شنبه، پنجشنبه (فاصله ریکاوری)
+    5: [6, 0, 2, 3, 5],  // شنبه تا جمعه با یک استراحت
+    6: [6, 0, 1, 2, 3, 4] // همه به‌جز جمعه
   };
   return patterns[n] || patterns[4];
 }
 
+/** نگاشت sessionOrder به روزهای workoutDays (ترتیب ایرانی) */
 function buildDaySessionMap(state) {
   const days = (state.settings.workoutDays && state.settings.workoutDays.length)
     ? sortIranWeekDays(state.settings.workoutDays)
@@ -202,6 +217,10 @@ function isWorkoutDay(state) {
   return getTodaySessionId(state) !== null;
 }
 
+/** آیا مکمل در روز استراحت هم مصرف می‌شود؟ */
 function isSuppOnRestDay(timing) {
+  // pre/post فقط روز تمرین؛ بقیه (daily, morning, evening, with_meal, anytime) همیشه
   return timing !== "pre" && timing !== "post";
 }
+
+const DAY_NAMES_FA = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
