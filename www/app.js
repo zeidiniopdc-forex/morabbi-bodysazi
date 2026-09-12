@@ -4,6 +4,63 @@ let state = loadState();
 let currentView = "dashboard";
 let restTimerInterval = null;
 let restSecondsLeft = 0;
+
+/** صدای آلارم داخل‌برنامه‌ای (Web Audio — بدون فایل خارجی) */
+let _audioCtx = null;
+function getAudioCtx() {
+  try {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_audioCtx.state === "suspended") _audioCtx.resume();
+    return _audioCtx;
+  } catch (e) { return null; }
+}
+function playTone(freq, durationMs, type, gainVal) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type || "sine";
+  osc.frequency.value = freq;
+  gain.gain.value = gainVal != null ? gainVal : 0.12;
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  const now = ctx.currentTime;
+  gain.gain.setValueAtTime(gain.gain.value, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + durationMs / 1000);
+  osc.start(now);
+  osc.stop(now + durationMs / 1000 + 0.02);
+}
+/** type: rest | supplement | workout */
+function playAppSound(kind) {
+  const s = state?.settings || {};
+  if (kind === "rest" && s.restTimerSound === false) return;
+  if (kind === "supplement" && s.supplementSound === false) return;
+  if (kind === "workout" && s.workoutReminderSound === false) return;
+  try {
+    if (kind === "rest") {
+      playTone(880, 180, "sine", 0.14);
+      setTimeout(() => playTone(1175, 220, "sine", 0.14), 200);
+      setTimeout(() => playTone(1319, 280, "sine", 0.12), 420);
+    } else if (kind === "supplement") {
+      playTone(660, 160, "triangle", 0.12);
+      setTimeout(() => playTone(880, 200, "triangle", 0.12), 180);
+    } else if (kind === "workout") {
+      playTone(523, 200, "square", 0.08);
+      setTimeout(() => playTone(659, 200, "square", 0.08), 220);
+      setTimeout(() => playTone(784, 320, "square", 0.1), 440);
+    } else {
+      playTone(800, 200, "sine", 0.1);
+    }
+  } catch (e) { /* ignore */ }
+  if (navigator.vibrate) {
+    try {
+      if (kind === "rest") navigator.vibrate([180, 80, 180, 80, 250]);
+      else if (kind === "workout") navigator.vibrate([300, 100, 300]);
+      else navigator.vibrate([120, 60, 120]);
+    } catch (e) {}
+  }
+}
+
 let workoutStartTime = null;
 
 // ---------- Utils ----------
@@ -611,7 +668,7 @@ function startRestTimer(seconds) {
       clearInterval(restTimerInterval);
       if (box) box.classList.add("hidden");
       toast("استراحت تمام شد — ست بعدی", "success");
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      playAppSound("rest");
     }
   };
   update();
@@ -1147,6 +1204,15 @@ function renderSettings() {
       </div>
     </div>
     <div class="card">
+      <div class="card-title">آلارم صوتی و یادآوری</div>
+      <label class="chip-check"><input type="checkbox" id="set-sound-rest" ${state.settings.restTimerSound !== false ? "checked" : ""} /><span>صدای پایان تایمر استراحت</span></label>
+      <label class="chip-check"><input type="checkbox" id="set-sound-supp" ${state.settings.supplementSound !== false ? "checked" : ""} /><span>صدای یادآوری مکمل</span></label>
+      <label class="chip-check"><input type="checkbox" id="set-sound-workout" ${state.settings.workoutReminderSound !== false ? "checked" : ""} /><span>صدای یادآوری جلسه تمرین</span></label>
+      <button type="button" class="btn btn-secondary btn-sm btn-block mt-1" onclick="testAppSounds()">تست صداها</button>
+      <button type="button" class="btn btn-secondary btn-sm btn-block mt-1" onclick="enableNotifications()">فعال‌سازی اعلان سیستم</button>
+      <p class="text-muted" style="font-size:0.75rem;margin-top:8px">یادآوری‌ها وقتی اپ باز است بررسی می‌شوند. برای اعلان پس‌زمینه، مجوز اعلان را بدهید.</p>
+    </div>
+    <div class="card">
       <div class="card-title">محدودیت‌های ثبت‌شده</div>
       <p style="font-size:0.9rem">${lims.length ? lims.join("، ") : "موردی ثبت نشده"}</p>
       <button class="btn btn-secondary btn-block mt-1" onclick="navigate('coach')">ویرایش در مربی هوشمند</button>
@@ -1164,6 +1230,9 @@ function saveSettings() {
   state.profile.startDate = $("#set-start")?.value || state.profile.startDate;
   state.settings.preferredWorkoutTime = $("#set-wtime")?.value || "17:00";
   state.settings.reminderMinutesBefore = Number($("#set-remind")?.value) || 30;
+  state.settings.restTimerSound = !!$("#set-sound-rest")?.checked;
+  state.settings.supplementSound = !!$("#set-sound-supp")?.checked;
+  state.settings.workoutReminderSound = !!$("#set-sound-workout")?.checked;
   // روزهای تمرین: اگر تیکی نباشد → واگذاری به AI
   const checked = sortIranWeekDays($$(".set-wday:checked").map(el => Number(el.value)));
   if (checked.length) {
@@ -1337,12 +1406,13 @@ function renderCoach() {
     return `<label class="day-check"><input type="checkbox" class="c-wday" value="${d}" ${checked} /> ${DAY_NAMES_FA[d]}</label>`;
   }).join("");
   const sessIsAuto = pr.sessionsPerWeek === "auto" || pr.sessionsPerWeek == null || !daysLocked;
+  const sel = (id, val) => (String(pr[id] ?? "") === String(val) ? "selected" : "");
 
   return `
     <div class="card" style="border-color:var(--accent)">
       <div class="card-title">🧠 مربی هوشمند</div>
       <p style="font-size:0.9rem;line-height:1.65;margin:0">
-        همه مشخصات لازم برای ساخت برنامه اینجاست. بعد از ذخیره، پرامپت آماده می‌شود تا به AI بدهید و خروجی JSON را برگردانید.
+        هرچه اطلاعات کامل‌تر باشد، برنامه دقیق‌تر می‌شود. همه فیلدها در همین صفحه است.
       </p>
       <div class="coach-steps mt-2">
         <span class="coach-step active">۱ مشخصات</span>
@@ -1352,7 +1422,7 @@ function renderCoach() {
     </div>
 
     <div class="card">
-      <div class="card-title">پروفایل</div>
+      <div class="card-title">پروفایل بدنی</div>
       <div class="form-group">
         <label class="form-label">نام</label>
         <input class="form-input" id="c-name" value="${pr.name || ""}" placeholder="نام شما" />
@@ -1378,6 +1448,14 @@ function renderCoach() {
           <input class="form-input" type="number" id="c-height" value="${pr.height || ""}" />
         </div>
         <div class="form-group">
+          <label class="form-label">دور کمر (سم، اختیاری)</label>
+          <input class="form-input" type="number" step="0.1" id="c-waist" value="${pr.waistCm || ""}" placeholder="مثلاً ۹۲" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">تخمین چربی بدن ٪</label>
+          <input class="form-input" type="number" step="0.1" id="c-bf" value="${pr.bodyFatEstimate || ""}" placeholder="اختیاری" />
+        </div>
+        <div class="form-group">
           <label class="form-label">سابقه تمرین (سال)</label>
           <input class="form-input" type="number" id="c-exp" value="${pr.experienceYears ?? 0}" />
         </div>
@@ -1389,8 +1467,60 @@ function renderCoach() {
     </div>
 
     <div class="card">
+      <div class="card-title">سبک زندگی و ریکاوری</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">سطح فعالیت روزانه</label>
+          <select class="form-select" id="c-activity">
+            <option value="sedentary" ${pr.activityLevel==="sedentary"?"selected":""}>کم‌تحرک (نشسته)</option>
+            <option value="light" ${pr.activityLevel==="light"?"selected":""}>سبک</option>
+            <option value="moderate" ${!pr.activityLevel||pr.activityLevel==="moderate"?"selected":""}>متوسط</option>
+            <option value="high" ${pr.activityLevel==="high"?"selected":""}>بالا / شغل فیزیکی</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">نوع شغل</label>
+          <select class="form-select" id="c-job">
+            <option value="desk" ${!pr.jobActivity||pr.jobActivity==="desk"?"selected":""}>اداری / نشسته</option>
+            <option value="standing" ${pr.jobActivity==="standing"?"selected":""}>ایستاده / متحرک</option>
+            <option value="physical" ${pr.jobActivity==="physical"?"selected":""}>کار بدنی سنگین</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">خواب شبانه (ساعت)</label>
+          <input class="form-input" type="number" step="0.5" id="c-sleep" value="${pr.sleepHours ?? 7}" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">استرس کلی</label>
+          <select class="form-select" id="c-stress">
+            <option value="low" ${pr.stressLevel==="low"?"selected":""}>کم</option>
+            <option value="medium" ${!pr.stressLevel||pr.stressLevel==="medium"?"selected":""}>متوسط</option>
+            <option value="high" ${pr.stressLevel==="high"?"selected":""}>زیاد</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">کیفیت ریکاوری</label>
+          <select class="form-select" id="c-recovery">
+            <option value="low" ${pr.recoveryQuality==="low"?"selected":""}>ضعیف</option>
+            <option value="medium" ${!pr.recoveryQuality||pr.recoveryQuality==="medium"?"selected":""}>متوسط</option>
+            <option value="high" ${pr.recoveryQuality==="high"?"selected":""}>خوب</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">سبک تمرینی مطلوب</label>
+          <select class="form-select" id="c-style">
+            <option value="hypertrophy" ${!pr.trainStyle||pr.trainStyle==="hypertrophy"?"selected":""}>هایپرتروفی / فرم</option>
+            <option value="strength" ${pr.trainStyle==="strength"?"selected":""}>قدرت</option>
+            <option value="mixed" ${pr.trainStyle==="mixed"?"selected":""}>ترکیبی</option>
+            <option value="recomp" ${pr.trainStyle==="recomp"?"selected":""}>ریکامپ (چربی↓ عضله↑)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card-title">محدودیت‌ها و آسیب‌ها</div>
-      <p class="text-muted" style="font-size:0.8rem;margin-bottom:8px">هر مورد مرتبط را علامت بزنید تا حرکات خطرناک حذف شوند.</p>
+      <p class="text-muted" style="font-size:0.8rem;margin-bottom:8px">هر مورد مرتبط را علامت بزنید.</p>
       <div class="chip-grid">
       ${LIMITATION_OPTIONS.map(o => `
         <label class="chip-check">
@@ -1402,7 +1532,6 @@ function renderCoach() {
 
     <div class="card">
       <div class="card-title">اهداف تمرینی</div>
-      <p class="text-muted" style="font-size:0.8rem;margin-bottom:8px">می‌توانید چند هدف انتخاب کنید.</p>
       <div class="chip-grid">
       ${GOAL_OPTIONS.map(o => `
         <label class="chip-check">
@@ -1413,9 +1542,9 @@ function renderCoach() {
     </div>
 
     <div class="card">
-      <div class="card-title">تعداد جلسات و روزهای هفته</div>
+      <div class="card-title">جلسات، روزها و تجهیزات</div>
       <p class="text-muted" style="font-size:0.8rem;margin-bottom:10px;line-height:1.5">
-        اگر «به انتخاب AI» باشد، تعداد و روزها قفل نمی‌شود. فقط وقتی روزها را خودتان تیک بزنید در پرامپت اجباری می‌شوند.
+        اگر «به انتخاب AI» باشد، تعداد و روزها قفل نمی‌شود.
       </p>
       <div class="form-group">
         <label class="form-label">تعداد جلسات در هفته</label>
@@ -1474,12 +1603,23 @@ function renderCoach() {
           <input class="form-input" type="number" id="c-deficit" value="${pr.goals?.deficit || 400}" placeholder="مثلاً 400" />
         </div>
       </div>
-      <p class="text-muted" style="font-size:0.78rem">اگر مطمئن نیستید همان اعداد پیشنهادی بماند؛ AI می‌تواند تعدیل کند.</p>
+    </div>
+
+    <div class="card" style="border-color:rgba(251,146,60,0.45)">
+      <div class="card-title">📷 تصاویر بدن (اختیاری)</div>
+      <label class="chip-check">
+        <input type="checkbox" id="c-photos" ${pr.includeBodyPhotos ? "checked" : ""} />
+        <span>همراه پرامپت، تحلیل تصاویر بدن هم درخواست شود</span>
+      </label>
+      <p class="text-muted" style="font-size:0.8rem;line-height:1.55;margin-top:10px">
+        اگر تیک بزنید، در پرامپت نوشته می‌شود که AI تصاویر جلو / پهلو / پشت را تحلیل کند.
+        بعد از کپی پرامپت، همان تصاویر را در ChatGPT یا Gemini <strong>ضمیمه</strong> کنید.
+      </p>
     </div>
 
     <div class="card">
       <div class="card-title">توضیح اضافه برای مربی AI</div>
-      <textarea class="form-input" id="c-extra" rows="3" placeholder="مثلاً: تمرکز روی دلتوئید میانی، باشگاه شلوغ عصرها، ترجیح دستگاه به‌جای هالتر...">${pr.extraNotes || ""}</textarea>
+      <textarea class="form-input" id="c-extra" rows="3" placeholder="مثلاً: تمرکز روی دلتوئید میانی، باشگاه شلوغ عصرها، ترجیح دستگاه...">${pr.extraNotes || ""}</textarea>
     </div>
 
     <div class="coach-actions">
@@ -1504,6 +1644,15 @@ function saveCoachProfileAndPrompt() {
   state.profile.weight = Number($("#c-weight")?.value) || state.profile.weight;
   state.profile.height = Number($("#c-height")?.value) || state.profile.height;
   state.profile.experienceYears = Number($("#c-exp")?.value) || 0;
+  state.profile.waistCm = Number($("#c-waist")?.value) || null;
+  state.profile.bodyFatEstimate = Number($("#c-bf")?.value) || null;
+  state.profile.activityLevel = $("#c-activity")?.value || "moderate";
+  state.profile.jobActivity = $("#c-job")?.value || "desk";
+  state.profile.sleepHours = Number($("#c-sleep")?.value) || 7;
+  state.profile.stressLevel = $("#c-stress")?.value || "medium";
+  state.profile.recoveryQuality = $("#c-recovery")?.value || "medium";
+  state.profile.trainStyle = $("#c-style")?.value || "hypertrophy";
+  state.profile.includeBodyPhotos = !!$("#c-photos")?.checked;
   state.profile.limitations = lims;
   state.profile.trainingGoals = goals.length ? goals : state.profile.trainingGoals;
   state.profile.equipment = $("#c-equip")?.value || "gym";
@@ -1516,7 +1665,6 @@ function saveCoachProfileAndPrompt() {
   state.profile.setupDone = true;
   state.settings.preferredWorkoutTime = $("#c-wtime")?.value || "17:00";
 
-  // روزها و تعداد جلسات: تیک‌های همین صفحه اولویت دارند
   if (dayChecks.length) {
     state.settings.workoutDays = dayChecks;
     state.profile.sessionsPerWeek = dayChecks.length;
@@ -1526,10 +1674,9 @@ function saveCoachProfileAndPrompt() {
   } else {
     const n = Number(sessVal) || 4;
     state.profile.sessionsPerWeek = n;
-    state.settings.workoutDays = []; // تعداد مشخص است ولی روزها به AI مگر بعداً تیک بخورد
+    state.settings.workoutDays = [];
   }
 
-  // زمان مکمل‌ها
   const wt = state.settings.preferredWorkoutTime;
   state.supplements.forEach(s => {
     const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
@@ -1543,6 +1690,7 @@ function saveCoachProfileAndPrompt() {
   toast("مشخصات ذخیره شد — پرامپت آماده است", "success");
   navigate("coach-prompt");
 }
+
 
 function clearCoachDays() {
   $$(".c-wday").forEach(el => { el.checked = false; });
@@ -1604,6 +1752,24 @@ function buildAiPrompt() {
   const bmiHint = (pr.weight && pr.height)
     ? (pr.weight / ((pr.height / 100) ** 2)).toFixed(1)
     : null;
+
+  const actMap = { sedentary: "کم‌تحرک", light: "سبک", moderate: "متوسط", high: "بالا" };
+  const stressMap = { low: "کم", medium: "متوسط", high: "زیاد" };
+  const recMap = { low: "ضعیف", medium: "متوسط", high: "خوب" };
+  const styleMap = { hypertrophy: "هایپرتروفی/فرم", strength: "قدرت", mixed: "ترکیبی", recomp: "ریکامپ" };
+  const jobMap = { desk: "اداری/نشسته", standing: "ایستاده/متحرک", physical: "کار بدنی سنگین" };
+  const photoBlock = pr.includeBodyPhotos ? `
+════════════════════════════════════
+تحلیل تصاویر بدن (الزامی)
+════════════════════════════════════
+کاربر تصاویر بدن خود را همراه این پرامپت پیوست می‌کند (ترجیحاً جلو، پهلو، پشت — لباس ورزشی، نور کافی).
+قبل از طراحی برنامه:
+1) ترکیب بدنی، نقاط قوت و ضعف عضلانی، و عدم‌تقارن احتمالی را از روی تصاویر برآورد کن.
+2) اولویت عضلات ضعیف‌تر/کم‌توسعه را در حجم هفتگی بالاتر ببر.
+3) اگر نشانه‌ای از مشکل پاسچر (شانه جلوآمده، لوردوز، ...) دیدی، در انتخاب حرکت و note جلسه لحاظ کن.
+4) در coachNotes یک پاراگراف کوتاه از مشاهدات بصری بنویس.
+اگر تصویری پیوست نشده بود، صریحاً در coachNotes بنویس که تحلیل بصری انجام نشده است.
+` : "";
 
   return `تو یک مربی بدنسازی سطح جهانی (World-Class Strength & Hypertrophy Coach) هستی؛ دانش تو بر پایه شواهد علمی به‌روز (Schoenfeld, Israetel/RP, Helms, ACSM) و تجربه مربیگری حرفه‌ای است. فقط یک JSON معتبر برگردان. هیچ متنی قبل یا بعد از JSON ننویس. از { شروع کن و با } تمام کن.
 
@@ -1709,14 +1875,24 @@ creatine, whey, casein, caffeine, betaalanine, citrulline, citrulline_pure, beta
 ════════════════════════════════════
 - ${gender}، ${pr.age || "?"} ساله
 - وزن: ${pr.weight || "?"} کیلو · قد: ${pr.height || "?"} سم${bmiHint ? ` · BMI≈${bmiHint}` : ""}
+${pr.waistCm ? `- دور کمر: ${pr.waistCm} سم` : ""}
+${pr.bodyFatEstimate ? `- تخمین چربی بدن: ${pr.bodyFatEstimate}٪` : ""}
 - سابقه تمرین: ${pr.experienceYears || 0} سال
 - ساعت تمرین معمول: ${wt}
 - تجهیزات: ${equipMap[pr.equipment] || pr.equipment || "باشگاه"}
+- سطح فعالیت روزانه: ${actMap[pr.activityLevel] || pr.activityLevel || "متوسط"}
+- شغل: ${jobMap[pr.jobActivity] || pr.jobActivity || "اداری"}
+- خواب: حدود ${pr.sleepHours ?? 7} ساعت
+- استرس: ${stressMap[pr.stressLevel] || "متوسط"} · ریکاوری: ${recMap[pr.recoveryQuality] || "متوسط"}
+- سبک مطلوب: ${styleMap[pr.trainStyle] || "هایپرتروفی"}
 - محدودیت‌ها: ${limLabels.length ? limLabels.join("، ") : "ندارد"}
 - اهداف: ${goalLabels.length ? goalLabels.join("، ") : "عمومی"}
+- هدف پروتئین اعلامی: ${pr.goals?.protein || "?"} گرم · کسری کالری: ${pr.goals?.deficit || "?"}
 ${forbidden.length ? "- حرکات ممنوع / پرریسک: " + forbidden.join("، ") : ""}
 ${(pr.limitations || []).includes("l4l5") ? "- پروتکل کمر: کمر خنثی، تکیه‌گاه، قطع حرکت با درد تیرکشنده/بی‌حسی/گزگز" : ""}
 ${pr.extraNotes ? "- توضیح اضافه شاگرد: " + pr.extraNotes : ""}
+${photoBlock}
+حجم و شدت را با خواب، استرس و ریکاوری واقعی این فرد هماهنگ کن (اگر ریکاوری ضعیف یا استرس بالاست، از MRV فاصله بگیر).
 
 فقط JSON نهایی را برگردان.`;
 }
@@ -1724,6 +1900,9 @@ ${pr.extraNotes ? "- توضیح اضافه شاگرد: " + pr.extraNotes : ""}
 
 function renderCoachPrompt() {
   const prompt = buildAiPrompt();
+  const photoHint = state.profile.includeBodyPhotos
+    ? `<div class="safety-soft" style="border-color:rgba(251,146,60,0.35);background:rgba(251,146,60,0.1)">📷 حالت تصاویر بدن فعال است. بعد از کپی پرامپت، عکس‌های جلو/پهلو/پشت را در همان گفتگوی AI ضمیمه کنید.</div>`
+    : "";
   return `
     <div class="card" style="border-color:var(--accent)">
       <div class="coach-steps mb-2">
@@ -1732,6 +1911,7 @@ function renderCoachPrompt() {
         <span class="coach-step">۳ وارد کردن</span>
       </div>
       <div class="card-title">پرامپت آماده برای هوش مصنوعی</div>
+      ${photoHint}
       <p style="font-size:0.9rem;margin-bottom:10px;line-height:1.6">
         این متن را کپی کنید و در ChatGPT / Claude / Gemini / هر AI دیگری بچسبانید.
         خروجی باید <strong>فقط JSON</strong> باشد.
@@ -2105,30 +2285,90 @@ window.recalcAllSuppTimes = recalcAllSuppTimes;
 window.saveBodyLog = saveBodyLog;
 window.saveNutrition = saveNutrition;
 window.saveSettings = saveSettings;
+window.testAppSounds = testAppSounds;
+window.enableNotifications = enableNotifications;
+window.playAppSound = playAppSound;
 window.resetAllData = resetAllData;
 
 // ---------- Simple reminder check (in-app, when open) ----------
+function testAppSounds() {
+  toast("پخش تست صدا…", "success");
+  playAppSound("supplement");
+  setTimeout(() => playAppSound("rest"), 900);
+  setTimeout(() => playAppSound("workout"), 1800);
+}
+function enableNotifications() {
+  if (!("Notification" in window)) {
+    toast("این دستگاه اعلان سیستم را پشتیبانی نمی‌کند", "warning");
+    return;
+  }
+  Notification.requestPermission().then(p => {
+    if (p === "granted") {
+      state.notificationsEnabled = true;
+      saveState(state);
+      toast("اعلان‌ها فعال شد", "success");
+      try { new Notification("مربی بدنسازی", { body: "یادآوری‌ها آماده‌اند" }); } catch (e) {}
+    } else {
+      toast("مجوز اعلان داده نشد", "warning");
+    }
+  });
+}
 function checkReminders() {
   if (document.hidden) return;
   const now = new Date();
   const hhmm = now.toTimeString().slice(0, 5);
   const today = getTodayStr();
+  // جلوگیری از تکرار آلارم در همان دقیقه
+  if (!window.__alarmFired) window.__alarmFired = {};
+  const fireKey = (k) => {
+    const key = today + "_" + hhmm + "_" + k;
+    if (window.__alarmFired[key]) return false;
+    window.__alarmFired[key] = true;
+    return true;
+  };
+
   state.supplements.filter(s => s.enabled && s.reminder !== false).forEach(s => {
     const def = SUPPLEMENT_CATALOG.find(p => p.id === s.id);
     if (!def) return;
-    // در روز استراحت، مکمل‌های فقط‌تمرین را یادآوری نکن
     if (!isWorkoutDay(state) && !isSuppOnRestDay(def.timing)) return;
     const t = getSuppEffectiveTime(s, def);
     if (t === hhmm) {
       const already = state.supplementLogs.some(l => l.date === today && l.suppId === s.id && l.taken);
-      if (!already) {
+      if (!already && fireKey("supp_" + s.id)) {
         toast(`زمان مصرف ${def.name}: ${s.dose} ${def.unit}`, "warning");
+        playAppSound("supplement");
         if (Notification.permission === "granted") {
-          new Notification(`مکمل: ${def.name}`, { body: `${s.dose} ${def.unit}` });
+          try { new Notification(`مکمل: ${def.name}`, { body: `${s.dose} ${def.unit}` }); } catch (e) {}
         }
       }
     }
   });
+
+  // یادآوری جلسه تمرین
+  if (isWorkoutDay(state)) {
+    const wt = state.settings.preferredWorkoutTime || "17:00";
+    const minsBefore = Number(state.settings.reminderMinutesBefore) || 30;
+    const [wh, wm] = wt.split(":").map(Number);
+    let total = wh * 60 + wm - minsBefore;
+    if (total < 0) total += 24 * 60;
+    const rh = String(Math.floor(total / 60) % 24).padStart(2, "0");
+    const rm = String(total % 60).padStart(2, "0");
+    const remindAt = `${rh}:${rm}`;
+    if (hhmm === remindAt && fireKey("workout")) {
+      const sessId = getTodaySessionId(state);
+      const sess = getActiveProgram(state).sessions.find(s => s.id === sessId);
+      const name = sess?.name || "تمرین امروز";
+      toast(`یادآوری تمرین: ${name} ساعت ${wt}`, "warning");
+      playAppSound("workout");
+      if (Notification.permission === "granted") {
+        try { new Notification("یادآوری تمرین", { body: `${name} · ${wt}` }); } catch (e) {}
+      }
+    }
+    if (hhmm === wt && fireKey("workout_now")) {
+      toast("زمان شروع تمرین است 💪", "success");
+      playAppSound("workout");
+    }
+  }
 }
 
 // Request notification permission (best-effort)
@@ -2136,7 +2376,7 @@ if ("Notification" in window && Notification.permission === "default") {
   // don't force; user can enable later
 }
 
-setInterval(checkReminders, 30000);
+setInterval(checkReminders, 15000);
 
 // PWA install prompt placeholder
 let deferredPrompt;
