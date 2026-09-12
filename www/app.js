@@ -1054,13 +1054,19 @@ function saveNutrition() {
 // ---------- SETTINGS ----------
 function renderSettings() {
   const lims = state.profile.limitations || [];
-  const days = state.settings.workoutDays || suggestWorkoutDays(state.profile.sessionsPerWeek || 4);
+  const daysLocked = Array.isArray(state.settings.workoutDays) && state.settings.workoutDays.length > 0
+    && state.profile.sessionsPerWeek !== "auto";
+  const days = daysLocked ? state.settings.workoutDays : [];
   const theme = state.settings.theme || "dark";
+  const aiMode = !daysLocked;
   const dayChecks = IR_WEEK_ORDER.map(d => {
     const checked = days.includes(d) ? "checked" : "";
     return `<label class="day-check"><input type="checkbox" class="set-wday" value="${d}" ${checked} /> ${DAY_NAMES_FA[d]}</label>`;
   }).join("");
   const schedulePreview = IR_WEEK_ORDER.map(d => {
+    if (aiMode) {
+      return `<div class="week-day-cell"><div class="week-day-name">${DAY_NAMES_SHORT[d]}</div><div class="week-day-rest">AI</div></div>`;
+    }
     const map = buildDaySessionMap(state);
     const sid = map[d];
     if (sid == null) {
@@ -1100,9 +1106,13 @@ function renderSettings() {
     </div>
     <div class="card">
       <div class="card-title">روزهای تمرین (هفته ایرانی · شنبه تا جمعه)</div>
-      <p style="font-size:0.85rem;margin-bottom:8px;color:var(--text-muted)">با فاصله ریکاوری انتخاب کنید یا پیشنهاد خودکار بزنید.</p>
+      <p style="font-size:0.85rem;margin-bottom:8px;color:var(--text-muted)">
+        ${aiMode
+          ? "🤖 فعلاً به هوش مصنوعی واگذار شده — بعد از وارد کردن خروجی AI، روزها تنظیم می‌شوند. اگر خودتان روزها را تیک بزنید، همان‌ها در پرامپت قفل می‌شوند."
+          : "روزهای انتخاب‌شده در پرامپت قفل می‌شوند. برای واگذاری به AI همه تیک‌ها را بردارید یا دکمه زیر را بزنید."}
+      </p>
       <div class="day-check-grid">${dayChecks}</div>
-      <button class="btn btn-secondary btn-sm btn-block mt-1" onclick="applySuggestedDays()">پیشنهاد خودکار با ریکاوری</button>
+      <button class="btn btn-secondary btn-sm btn-block mt-1" onclick="applySuggestedDays()">🤖 واگذاری تعداد و روزها به هوش مصنوعی</button>
       <div class="card-title mt-2">پیش‌نمایش هفته</div>
       <div class="week-schedule">${schedulePreview}</div>
     </div>
@@ -1132,11 +1142,14 @@ function saveSettings() {
   state.profile.startDate = $("#set-start")?.value || state.profile.startDate;
   state.settings.preferredWorkoutTime = $("#set-wtime")?.value || "17:00";
   state.settings.reminderMinutesBefore = Number($("#set-remind")?.value) || 30;
-  // روزهای تمرین انتخاب‌شده
-  const checked = $$(".set-wday:checked").map(el => Number(el.value)).sort((a,b)=>a-b);
+  // روزهای تمرین: اگر تیکی نباشد → واگذاری به AI
+  const checked = sortIranWeekDays($$(".set-wday:checked").map(el => Number(el.value)));
   if (checked.length) {
     state.settings.workoutDays = checked;
     state.profile.sessionsPerWeek = checked.length;
+  } else {
+    state.settings.workoutDays = [];
+    state.profile.sessionsPerWeek = "auto";
   }
   // همگام‌سازی زمان مکمل‌ها
   const wt = state.settings.preferredWorkoutTime;
@@ -1153,17 +1166,31 @@ function saveSettings() {
 }
 
 function applySuggestedDays() {
-  const n = state.profile.sessionsPerWeek || (state.settings.workoutDays || []).length || 4;
-  state.settings.workoutDays = suggestWorkoutDays(n);
-  // اگر تعداد جلسات برنامه با روزها هم‌خوان نیست، sessionOrder را کوتاه/تکرار نکن
+  // واگذاری کامل به AI: هیچ روزی از قبل قفل نشود
+  state.settings.workoutDays = [];
+  state.profile.sessionsPerWeek = "auto";
+  saveState(state);
+  toast("تعداد جلسات و روزها به هوش مصنوعی واگذار شد", "success");
+  render();
+}
+
+/** اگر کاربر تعداد مشخص کرده، الگوی ریکاوری ایرانی پیشنهاد بده (بدون اجبار AI) */
+function applyRecoveryPatternForCount(n) {
+  const count = Math.min(6, Math.max(2, Number(n) || 0));
+  if (!count) {
+    applySuggestedDays();
+    return;
+  }
+  state.profile.sessionsPerWeek = count;
+  state.settings.workoutDays = suggestWorkoutDays(count);
   const prog = getActiveProgram(state);
   const sessIds = (prog.sessions || []).map(s => s.id);
-  state.settings.sessionOrder = sessIds.slice(0, state.settings.workoutDays.length);
-  while (state.settings.sessionOrder.length < state.settings.workoutDays.length) {
+  state.settings.sessionOrder = sessIds.slice(0, count);
+  while (state.settings.sessionOrder.length < count) {
     state.settings.sessionOrder.push(sessIds[state.settings.sessionOrder.length % sessIds.length] || 1);
   }
   saveState(state);
-  toast("روزهای تمرین با فاصله ریکاوری تنظیم شد", "success");
+  toast(`الگوی ${count} جلسه با ریکاوری پیشنهاد شد — در صورت تمایل ذخیره کنید`, "success");
   render();
 }
 
@@ -1384,7 +1411,20 @@ function saveCoachProfileAndPrompt() {
   const sessVal = $("#c-sessions")?.value || "auto";
   const durVal = $("#c-duration")?.value || "auto";
   const weeksVal = $("#c-weeks")?.value || "8";
-  state.profile.sessionsPerWeek = sessVal === "auto" ? "auto" : (Number(sessVal) || 4);
+  if (sessVal === "auto") {
+    state.profile.sessionsPerWeek = "auto";
+    state.settings.workoutDays = []; // قفل روز برداشته شود تا AI تصمیم بگیرد
+  } else {
+    const n = Number(sessVal) || 4;
+    state.profile.sessionsPerWeek = n;
+    // فقط اگر کاربر قبلاً روزی تیک نزده، الگوی ریکاوری پیشنهادی بگذار (قابل تغییر در تنظیمات)
+    if (!Array.isArray(state.settings.workoutDays) || state.settings.workoutDays.length === 0) {
+      state.settings.workoutDays = suggestWorkoutDays(n);
+    } else if (state.settings.workoutDays.length !== n) {
+      // تعداد تیک‌ها با تعداد جلسات هم‌خوان نیست → الگوی جدید
+      state.settings.workoutDays = suggestWorkoutDays(n);
+    }
+  }
   state.profile.sessionDuration = durVal === "auto" ? "auto" : (Number(durVal) || 70);
   state.profile.equipment = $("#c-equip")?.value || "gym";
   state.profile.extraNotes = $("#c-extra")?.value || "";
@@ -1420,16 +1460,21 @@ function buildAiPrompt() {
   if ((pr.limitations || []).includes("knee")) forbidden.push("اسکوات عمیق سنگین", "لانج سنگین اگر دردناک است");
   if ((pr.limitations || []).includes("shoulder")) forbidden.push("پرس نظامی پشت گردن", "پلاور سنگین پشت سر");
 
-  const sessAuto = pr.sessionsPerWeek === "auto" || pr.sessionsPerWeek == null;
+  const userDays = Array.isArray(state.settings.workoutDays) ? state.settings.workoutDays.filter(d => d >= 0 && d <= 6) : [];
+  const daysLocked = userDays.length > 0 && pr.sessionsPerWeek !== "auto" && pr.sessionsPerWeek != null;
+  const sessAuto = !daysLocked && (pr.sessionsPerWeek === "auto" || pr.sessionsPerWeek == null || userDays.length === 0);
   const durAuto = pr.sessionDuration === "auto" || pr.sessionDuration == null;
   const weeksAuto = pr.planWeeks === "auto";
-  const spw = (sessAuto ? 4 : (Number(pr.sessionsPerWeek) || 4));
-  const suggestedDays = suggestWorkoutDays(spw);
-  const dayNames = suggestedDays.map(d => DAY_NAMES_FA[d]).join("، ");
+  const lockedCount = daysLocked ? userDays.length : (Number(pr.sessionsPerWeek) || 0);
+  const lockedDaysSorted = daysLocked ? sortIranWeekDays(userDays) : [];
+  const lockedDayNames = lockedDaysSorted.map(d => DAY_NAMES_FA[d]).join("، ");
 
   const sessRule = sessAuto
-    ? "تعداد جلسات را بر اساس سابقه، اهداف، محدودیت‌ها و ظرفیت ریکاوری انتخاب کن (معمولاً ۳–۵؛ برای سابقه بالا و تمرکز روی چند عضله، ۴ منطقی است مگر دلیل قوی‌تری باشد)."
-    : `تعداد جلسات در هفته باید دقیقاً ${pr.sessionsPerWeek} باشد.`;
+    ? "تعداد جلسات هفتگی را خودت انتخاب کن (معمولاً ۳ تا ۶). بر اساس سابقه، اهداف، محدودیت‌ها، سن، ظرفیت ریکاوری و زمان در دسترس تصمیم بگیر. روی عدد ثابتی قفل نکن مگر شواهد پروفایل آن را ایجاب کند."
+    : `تعداد جلسات در هفته باید دقیقاً ${lockedCount || pr.sessionsPerWeek} باشد.`;
+  const daysRule = sessAuto
+    ? "workoutDays را خودت با تقویم ایرانی انتخاب کن (۶=شنبه … ۵=جمعه). بین جلسات مشابه عضلانی ≥۴۸ ساعت فاصله بگذار. الگو فقط راهنماست نه اجبار: ۳→[۶,۱,۳] | ۴→[۶,۰,۲,۴] | ۵→[۶,۰,۲,۳,۵]."
+    : `workoutDays باید دقیقاً این روزها باشد: [${lockedDaysSorted.join(", ")}] (${lockedDayNames}). ترتیب sessions را با همین روزها هم‌خوان کن.`;
   const durRule = durAuto
     ? "مدت هر جلسه واقع‌بینانه باشد (۴۵–۹۰ دقیقه). تعداد حرکات و ست‌ها را با این مدت هماهنگ کن؛ از حجم غیرقابل‌اجرا پرهیز کن."
     : `مدت تقریبی هر جلسه حدود ${pr.sessionDuration} دقیقه؛ حجم را با این زمان هماهنگ کن.`;
@@ -1437,7 +1482,9 @@ function buildAiPrompt() {
     ? "طول دوره را بین ۶ تا ۱۲ هفته در فیلد weeks بنویس (برای هایپرتروفی معمولاً ۸–۱۰)."
     : `weeks باید ${pr.planWeeks || 8} باشد.`;
   const weeksJson = weeksAuto ? '"weeks": 8' : `"weeks": ${pr.planWeeks || 8}`;
-  const sessJson = sessAuto ? '"sessionsPerWeek": 4' : `"sessionsPerWeek": ${pr.sessionsPerWeek || 4}`;
+  // در حالت auto فقط نمونه ساختاری؛ AI باید عدد نهایی را انتخاب کند
+  const sessJson = sessAuto ? '"sessionsPerWeek": 4' : `"sessionsPerWeek": ${lockedCount || pr.sessionsPerWeek || 4}`;
+  const daysJson = sessAuto ? '"workoutDays": [6, 0, 2, 4]' : `"workoutDays": ${JSON.stringify(lockedDaysSorted)}`;
 
   const bmiHint = (pr.weight && pr.height)
     ? (pr.weight / ((pr.height / 100) ** 2)).toFixed(1)
@@ -1461,7 +1508,7 @@ function buildAiPrompt() {
     "name": "نام کوتاه و دقیق برنامه به فارسی",
     ${weeksJson},
     ${sessJson},
-    "workoutDays": ${JSON.stringify(suggestedDays)},
+    ${daysJson},
     "periodization": "توضیح ۱–۲ جمله‌ای مدل پیشرفت (مثلاً double progression روی ست‌های ترکیبی)",
     "weeklyVolumeTargets": { "سرشانه": "18-20", "سینه": "10-12", "پشت": "12-16", "جلو بازو": "10-12", "پشت بازو": "10-14", "پا": "12-16", "میان‌تنه": "6-8" },
     "sessions": [
@@ -1510,10 +1557,11 @@ creatine, whey, casein, caffeine, betaalanine, citrulline, citrulline_pure, beta
 اصول طراحی برنامه (اجباری)
 ════════════════════════════════════
 1) ${sessRule}
-2) ${durRule}
-3) ${weeksRule}
-4) تعداد آبجکت‌های sessions = sessionsPerWeek
-5) workoutDays: آرایه روزها با اعداد JS getDay (۶=شنبه، ۰=یکشنبه، ۱=دوشنبه، ۲=سه‌شنبه، ۳=چهارشنبه، ۴=پنجشنبه، ۵=جمعه). هفته در ایران از شنبه شروع می‌شود. الگوی پیشنهادی برای این کاربر: [${suggestedDays.join(", ")}] یعنی ${dayNames}. فاصله ریکاوری بین جلسات مشابه عضلانی ≥ ۴۸ ساعت.
+2) ${daysRule}
+3) ${durRule}
+4) ${weeksRule}
+5) تعداد آبجکت‌های sessions باید با sessionsPerWeek یکی باشد
+6) workoutDays: آرایه اعداد JS getDay — ۶=شنبه، ۰=یکشنبه، ۱=دوشنبه، ۲=سه‌شنبه، ۳=چهارشنبه، ۴=پنجشنبه، ۵=جمعه (هفته ایرانی از شنبه). فاصله ریکاوری بین جلسات مشابه عضلانی ≥ ۴۸ ساعت.
 6) ترتیب جلسات را طوری بچین که تداخل خستگی عضلات همپوشان کم شود (مثلاً سینه/سرشانه را پشت‌سرهم سنگین نگذار مگر با فاصله کافی).
 7) انتخاب حرکت:
    - ابتدا الگوی حرکتی ترکیبی ایمن متناسب تجهیزات و محدودیت
@@ -1797,6 +1845,7 @@ window.applyAiImport = applyAiImport;
 window.toggleTheme = toggleTheme;
 window.showExerciseDemo = showExerciseDemo;
 window.applySuggestedDays = applySuggestedDays;
+window.applyRecoveryPatternForCount = applyRecoveryPatternForCount;
 window.showProgramImport = showProgramImport;
 window.importProgramJson = importProgramJson;
 window.exportProgram = exportProgram;
