@@ -1,0 +1,40 @@
+/* Light theme overrides */
+[data-theme="light"] {
+  --bg: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-elevated: #e2e8f0;
+  --border: #cbd5e1;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --primary: #0891b2;
+  --primary-dim: #0e7490;
+  --accent: #7c3aed;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --orange: #ea580c;
+  --shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+}
+[data-theme="light"] .app-header {
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+}
+[data-theme="light"] .bottom-nav {
+  background: rgba(255, 255, 255, 0.95);
+}
+[data-theme="light"] .btn-primary { color: #ffffff; }
+[data-theme="light"] .session-card.today {
+  background: linear-gradient(135deg, rgba(8, 145, 178, 0.1), transparent);
+}
+[data-theme="light"] .safety-banner {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.25);
+}
+[data-theme="light"] .modal-overlay { background: rgba(15, 23, 42, 0.45); }
+[data-theme="light"] .tag-primary { background: rgba(8,145,178,0.12); }
+[data-theme="light"] .tag-success { background: rgba(5,150,105,0.12); }
+[data-theme="light"] .tag-warning { background: rgba(217,119,6,0.12); }
+[data-theme="light"] .tag-danger { background: rgba(220,38,38,0.12); }
+[data-theme="light"] .tag-accent { background: rgba(124,58,237,0.12); }
+[data-theme="light"] .supp-icon { background: rgba(8, 145, 178, 0.1); }
+[data-theme="light"] .set-row.done input { background: rgba(5, 150, 105, 0.1); }
+html, body { transition: background 0.25s ease, color 0.25s ease; }
