@@ -1,4 +1,4 @@
-// ========== APP HOOKS v2.4 (load AFTER app.js) ==========
+// ========== APP HOOKS UX v4 ==========
 (function () {
   function upgradeProgress() {
     try {
@@ -6,50 +6,13 @@
       const main = document.getElementById("main-content");
       if (!main || typeof renderProgressEnhanced !== "function") return;
       if (document.getElementById("chart-weight") || document.getElementById("photo-pose")) {
-        if (typeof afterProgressRender === "function") requestAnimationFrame(() => afterProgressRender());
+        if (typeof afterProgressRender === "function") requestAnimationFrame(function () { afterProgressRender(); });
         return;
       }
       main.innerHTML = renderProgressEnhanced();
       if (typeof bindViewEvents === "function") bindViewEvents();
-      if (typeof afterProgressRender === "function") requestAnimationFrame(() => afterProgressRender());
+      if (typeof afterProgressRender === "function") requestAnimationFrame(function () { afterProgressRender(); });
     } catch (e) { console.warn("upgradeProgress", e); }
-  }
-
-  function upgradeReports() {
-    try {
-      if (typeof currentView === "undefined" || currentView !== "reports") return;
-      const main = document.getElementById("main-content");
-      if (!main || typeof renderReportsEnhanced !== "function") return;
-      if (main.querySelector("[onclick*='shareReport']")) return;
-      main.innerHTML = renderReportsEnhanced();
-      if (typeof bindViewEvents === "function") bindViewEvents();
-    } catch (e) { console.warn("upgradeReports", e); }
-  }
-
-  function injectUnitsSelector() {
-    if (document.getElementById("set-units")) return;
-    if (typeof currentView === "undefined" || currentView !== "settings") return;
-    const soundEl = document.getElementById("set-sound-rest");
-    if (!soundEl) return;
-    const card = soundEl.closest(".card");
-    if (!card || !card.parentNode) return;
-    const units = (typeof state !== "undefined" && state.settings && state.settings.units) || "kg";
-    const div = document.createElement("div");
-    div.className = "card";
-    div.innerHTML =
-      '<div class="card-title">واحد وزن</div>' +
-      '<select class="form-select" id="set-units">' +
-      '<option value="kg"' + (units === "kg" ? " selected" : "") + '>کیلوگرم (kg)</option>' +
-      '<option value="lb"' + (units === "lb" ? " selected" : "") + '>پوند (lb)</option>' +
-      "</select>";
-    card.parentNode.insertBefore(div, card);
-  }
-
-  function persistUnits() {
-    const sel = document.getElementById("set-units");
-    if (!sel || typeof state === "undefined") return;
-    state.settings.units = sel.value === "lb" ? "lb" : "kg";
-    if (typeof saveState === "function") saveState(state);
   }
 
   function stickyWorkoutChrome() {
@@ -57,9 +20,9 @@
       if (typeof currentView === "undefined" || currentView !== "active-workout") return;
       const main = document.getElementById("main-content");
       if (!main) return;
-      let sticky = main.querySelector(".workout-sticky");
-      const header = main.querySelector(".workout-header");
-      const rest = main.querySelector("#rest-timer-box");
+      var sticky = main.querySelector(".workout-sticky");
+      var header = main.querySelector(".workout-header");
+      var rest = main.querySelector("#rest-timer-box");
       if (!header) return;
       if (!sticky) {
         sticky = document.createElement("div");
@@ -75,37 +38,50 @@
         sticky.classList.add("is-resting");
         if (rest) {
           rest.classList.remove("hidden");
-          const el = document.getElementById("rest-time");
+          var el = document.getElementById("rest-time");
           if (el && typeof formatTime === "function") el.textContent = formatTime(restSecondsLeft);
         }
-      } else {
-        sticky.classList.remove("is-resting");
       }
-    } catch (e) {
-      console.warn("stickyWorkoutChrome", e);
-    }
+      if (!document.getElementById("ux-swap-program") && sticky) {
+        var b = document.createElement("button");
+        b.id = "ux-swap-program";
+        b.type = "button";
+        b.className = "btn btn-secondary btn-sm ux-swap-btn";
+        b.textContent = "جایگزینی برنامه امروز";
+        b.onclick = function () { if (typeof swapProgramInWorkout === "function") swapProgramInWorkout(); };
+        sticky.appendChild(b);
+      }
+    } catch (e) { console.warn("stickyWorkoutChrome", e); }
   }
 
-  function upgradeNutrition() {
+  function upgradeHome() {
     try {
-      if (typeof renderNutritionEnhanced !== "function") return;
-      const main = document.getElementById("main-content");
+      if (typeof currentView === "undefined" || currentView !== "dashboard") return;
+      if (typeof renderHomeDashboardV4 !== "function") return;
+      var main = document.getElementById("main-content");
       if (!main) return;
-      if (typeof currentView !== "undefined" && currentView === "nutrition") {
-        if (!main.querySelector("#nutrition-dashboard") || !main.querySelector(".nut-quick-grid")) {
-          main.innerHTML = renderNutritionEnhanced();
+      if (main.querySelector(".ux-week")) return;
+      main.innerHTML = renderHomeDashboardV4();
+    } catch (e) { console.warn("upgradeHome", e); }
+  }
+
+  function upgradeProgramsView() {
+    try {
+      if (typeof currentView === "undefined") return;
+      var main = document.getElementById("main-content");
+      if (!main) return;
+      if (currentView === "programs" && typeof renderProgramsPage === "function") {
+        if (!main.querySelector(".ux-prog") && !main.querySelector(".ux-page-title")) {
+          main.innerHTML = renderProgramsPage();
         }
       }
-      if (typeof currentView !== "undefined" && currentView === "dashboard") {
-        if (document.getElementById("nutrition-dashboard")) return;
-        const html = renderNutritionDashboardBlock();
-        const creator = main.querySelector(".creator-card");
-        if (creator) creator.insertAdjacentHTML("beforebegin", html);
-        else main.insertAdjacentHTML("beforeend", html);
+      if (currentView === "mealplan" && typeof renderMealPlanPage === "function") {
+        if (!main.querySelector("#diet-goal")) main.innerHTML = renderMealPlanPage();
       }
-    } catch (e) {
-      console.warn("upgradeNutrition", e);
-    }
+      if (currentView === "nutrition" && typeof renderNutritionEnhanced === "function") {
+        if (!main.querySelector("#nutrition-dashboard")) main.innerHTML = renderNutritionEnhanced();
+      }
+    } catch (e) { console.warn("upgradeProgramsView", e); }
   }
 
   function injectProfilesUI() {
@@ -113,58 +89,79 @@
       if (typeof renderProfilesPanel !== "function") return;
       if (typeof currentView === "undefined") return;
       if (currentView !== "settings" && currentView !== "more") return;
-      const mainEl = document.getElementById("main-content");
-      if (!mainEl) return;
-      if (document.getElementById("profiles-panel")) return;
-      const html = renderProfilesPanel();
-      if (currentView === "settings") {
-        mainEl.insertAdjacentHTML("afterbegin", html);
-      } else {
-        const first = mainEl.querySelector(".card, .menu-list, .creator-card");
+      var mainEl = document.getElementById("main-content");
+      if (!mainEl || document.getElementById("profiles-panel")) return;
+      var html = renderProfilesPanel();
+      if (currentView === "settings") mainEl.insertAdjacentHTML("afterbegin", html);
+      else {
+        var first = mainEl.querySelector(".card, .menu-list, .creator-card");
         if (first) first.insertAdjacentHTML("beforebegin", html);
         else mainEl.insertAdjacentHTML("afterbegin", html);
       }
-    } catch (e) {
-      console.warn("injectProfilesUI", e);
-    }
+    } catch (e) {}
+  }
+
+  function enhanceMoreMenu() {
+    try {
+      if (typeof currentView === "undefined" || currentView !== "more") return;
+      var main = document.getElementById("main-content");
+      if (!main || document.getElementById("ux-more-extra")) return;
+      var box = document.createElement("div");
+      box.id = "ux-more-extra";
+      box.className = "menu-list";
+      box.innerHTML = '<button type="button" class="menu-item" onclick="navigate(\'programs\')"><span class="mi-icon">📋</span><span class="mi-text"><strong>برنامه‌های من</strong><small>مدیریت و تعویض برنامه</small></span><span class="mi-chev">‹</span></button>' +
+        '<button type="button" class="menu-item" onclick="navigate(\'mealplan\')"><span class="mi-icon">🥗</span><span class="mi-text"><strong>برنامه غذایی</strong><small>هدف کالری و وعده‌ها</small></span><span class="mi-chev">‹</span></button>';
+      var list = main.querySelector(".menu-list");
+      if (list) list.parentNode.insertBefore(box, list);
+      else main.insertAdjacentElement("afterbegin", box);
+    } catch (e) {}
+  }
+
+  function patchNavigate() {
+    if (window.__uxNavPatched) return;
+    if (typeof navigate !== "function") return;
+    var orig = navigate;
+    window.navigate = function (view) {
+      if (view === "programs" || view === "mealplan") {
+        currentView = view;
+        try {
+          document.body.classList.toggle("workout-mode", false);
+          var titles = { programs: "برنامه‌های من", mealplan: "برنامه غذایی" };
+          var t = document.getElementById("page-title");
+          if (t) t.textContent = titles[view] || view;
+          if (typeof $$ === "function") $$(".nav-item").forEach(function (b) { b.classList.toggle("active", false); });
+        } catch (e) {}
+        var main = document.getElementById("main-content");
+        if (main) {
+          if (view === "programs" && typeof renderProgramsPage === "function") main.innerHTML = renderProgramsPage();
+          if (view === "mealplan" && typeof renderMealPlanPage === "function") main.innerHTML = renderMealPlanPage();
+        }
+        return;
+      }
+      return orig(view);
+    };
+    window.__uxNavPatched = true;
   }
 
   function runUpgrades() {
-    upgradeProgress();
-    upgradeReports();
-    injectUnitsSelector();
+    patchNavigate();
+    upgradeHome();
     stickyWorkoutChrome();
-    upgradeNutrition();
+    upgradeProgress();
+    upgradeProgramsView();
     injectProfilesUI();
+    enhanceMoreMenu();
   }
 
-  window.enableNotifications = function () {
-    if (typeof scheduleLocalReminders === "function") scheduleLocalReminders();
-  };
-
-  document.addEventListener(
-    "click",
-    function (e) {
-      const t = e.target.closest("[onclick], .nav-item, .menu-item, .quick-tile, button");
-      if (!t) return;
-      const oc = t.getAttribute("onclick") || "";
-      if (oc.includes("saveSettings")) {
-        setTimeout(persistUnits, 120);
-      }
-      setTimeout(runUpgrades, 50);
-    },
-    true
-  );
-
-  const main = document.getElementById("main-content");
+  document.addEventListener("click", function () { setTimeout(runUpgrades, 40); }, true);
+  var main = document.getElementById("main-content");
   if (main && typeof MutationObserver !== "undefined") {
-    const obs = new MutationObserver(function () {
-      runUpgrades();
-    });
-    obs.observe(main, { childList: true });
+    new MutationObserver(function () { runUpgrades(); }).observe(main, { childList: true });
   }
-
   if (typeof initOfflineWatch === "function") initOfflineWatch();
-  setTimeout(runUpgrades, 120);
-  console.log("[FitAI] hooks v2.4 — sticky workout + nutrition + profiles");
+  if (typeof ensureProgramsLibrary === "function") {
+    try { ensureProgramsLibrary(); } catch (e) {}
+  }
+  setTimeout(runUpgrades, 100);
+  console.log("[FitAI] UX v4 hooks active");
 })();
