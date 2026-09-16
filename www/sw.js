@@ -1,4 +1,4 @@
-const CACHE = "bb-tracker-v2";
+const CACHE = "bb-tracker-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -25,5 +25,17 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   e.respondWith(
     caches.match(e.request).then((cached) => cached || fetch(e.request).catch(() => caches.match("./index.html")))
+  );
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ("focus" in c) return c.focus();
+      }
+      if (clients.openWindow) return clients.openWindow("./");
+    })
   );
 });

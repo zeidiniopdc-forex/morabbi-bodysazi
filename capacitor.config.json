@@ -2,5 +2,15 @@
   "appId": "com.fitai.app",
   "appName": "FitAI",
   "webDir": "www",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": false,
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#2DD4BF",
+      "sound": "default"
+    }
+  },
+  "android": {
+    "allowMixedContent": true
+  }
 }
