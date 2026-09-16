@@ -52,16 +52,6 @@
     if (typeof saveState === "function") saveState(state);
   }
 
-  function upgradeDashboardWeight() {
-    try {
-      if (typeof currentView === "undefined" || currentView !== "dashboard") return;
-      if (typeof kgToDisplay !== "function") return;
-      const chips = document.querySelectorAll(".stat-chip .sc-val");
-      if (!chips.length) return;
-      // first chip is weight in dashboard
-    } catch (e) {}
-  }
-
   function runUpgrades() {
     upgradeProgress();
     upgradeReports();
@@ -96,5 +86,40 @@
 
   if (typeof initOfflineWatch === "function") initOfflineWatch();
   setTimeout(runUpgrades, 150);
-  console.log("[FitAI] high-value features hooks v2.3 active");
+
+  function injectProfilesUI() {
+    try {
+      if (typeof renderProfilesPanel !== "function") return;
+      if (typeof currentView === "undefined") return;
+      if (currentView !== "settings" && currentView !== "more") return;
+      const mainEl = document.getElementById("main-content");
+      if (!mainEl) return;
+      if (document.getElementById("profiles-panel")) return;
+      const html = renderProfilesPanel();
+      if (currentView === "settings") {
+        mainEl.insertAdjacentHTML("afterbegin", html);
+      } else {
+        const first = mainEl.querySelector(".card, .menu-list, .creator-card");
+        if (first) first.insertAdjacentHTML("beforebegin", html);
+        else mainEl.insertAdjacentHTML("afterbegin", html);
+      }
+    } catch (e) {
+      console.warn("injectProfilesUI", e);
+    }
+  }
+
+  document.addEventListener("click", function () {
+    setTimeout(injectProfilesUI, 80);
+  }, true);
+
+  const mainEl = document.getElementById("main-content");
+  if (mainEl && typeof MutationObserver !== "undefined") {
+    const obs2 = new MutationObserver(function () {
+      injectProfilesUI();
+    });
+    obs2.observe(mainEl, { childList: true });
+  }
+  setTimeout(injectProfilesUI, 200);
+
+  console.log("[FitAI] high-value features hooks v2.3 + profiles");
 })();
