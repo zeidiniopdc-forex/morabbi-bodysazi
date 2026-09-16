@@ -32,6 +32,8 @@ html, body { background: var(--ux-bg) !important; color: var(--ux-text); }
 #app {
   background: radial-gradient(ellipse 90% 40% at 50% -15%, rgba(45,212,191,0.07), transparent), var(--ux-bg) !important;
   max-width: 480px;
+  overflow-x: hidden;
+  max-width: min(480px, 100vw);
 }
 .app-header {
   background: rgba(6,10,18,0.85) !important;
@@ -64,23 +66,113 @@ html, body { background: var(--ux-bg) !important; color: var(--ux-text); }
 .ux-greet { font-size: 0.85rem; color: var(--ux-muted); }
 .ux-name { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.03em; }
 .ux-date-line { font-size: 0.8rem; color: var(--ux-muted); margin-top: 2px; }
-.ux-cal { padding: 14px !important; margin-bottom: 12px; }
-.ux-cal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+
+/* تقویم هفته — بدون overflow افقی */
+.ux-cal {
+  padding: 12px !important;
+  margin-bottom: 12px;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.ux-cal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+  max-width: 100%;
+}
 .ux-cal-title { font-weight: 800; font-size: 0.95rem; }
 .ux-cal-date { font-size: 0.78rem; color: var(--ux-muted); margin-top: 2px; }
-.ux-cal-prog { font-size: 0.72rem; font-weight: 700; color: var(--ux-primary); max-width: 40%; text-align: left; }
-.ux-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-.ux-day {
-  position: relative; border: 1px solid var(--ux-border); background: var(--ux-elevated);
-  border-radius: 12px; padding: 8px 2px; text-align: center; font-family: inherit;
-  color: var(--ux-text); cursor: pointer; min-height: 58px;
+.ux-cal-prog {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ux-primary);
+  max-width: 42%;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
 }
-.ux-day-name { display: block; font-weight: 800; font-size: 0.75rem; }
-.ux-day-sub { display: block; font-size: 0.58rem; color: var(--ux-muted); margin-top: 4px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ux-day.is-today { border-color: rgba(45,212,191,0.55); box-shadow: 0 0 0 1px rgba(45,212,191,0.25); }
-.ux-day.is-train { background: linear-gradient(160deg, rgba(45,212,191,0.12), var(--ux-elevated)); }
-.ux-day.is-done { border-color: rgba(52,211,153,0.45); }
-.ux-day-check { position: absolute; top: 3px; left: 3px; font-size: 0.65rem; color: var(--ux-success); }
+.ux-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.ux-day {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--ux-border);
+  background: var(--ux-elevated);
+  border-radius: 10px;
+  padding: 6px 1px 5px;
+  text-align: center;
+  font-family: inherit;
+  color: var(--ux-text);
+  cursor: pointer;
+  min-height: 52px;
+  overflow: hidden;
+}
+.ux-day-name {
+  display: block;
+  font-weight: 700;
+  font-size: clamp(0.62rem, 2.6vw, 0.75rem);
+  line-height: 1.15;
+}
+.ux-day-sub {
+  display: block;
+  font-size: clamp(0.48rem, 2vw, 0.56rem);
+  color: var(--ux-muted);
+  margin-top: 3px;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  padding: 0 1px;
+}
+/* روز جاری — پررنگ‌تر */
+.ux-day.is-today {
+  background: linear-gradient(160deg, #2dd4bf, #14b8a6) !important;
+  border-color: #5eead4 !important;
+  color: #042f2e !important;
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(45, 212, 191, 0.45), 0 0 0 2px rgba(45, 212, 191, 0.35);
+  z-index: 1;
+}
+.ux-day.is-today .ux-day-name {
+  color: #042f2e !important;
+  font-weight: 900;
+  font-size: clamp(0.68rem, 2.8vw, 0.8rem);
+}
+.ux-day.is-today .ux-day-sub {
+  color: rgba(4, 47, 46, 0.85) !important;
+  font-weight: 700;
+}
+.ux-day.is-today .ux-day-check { color: #042f2e; }
+.ux-day.is-train:not(.is-today) {
+  background: linear-gradient(160deg, rgba(45,212,191,0.12), var(--ux-elevated));
+}
+.ux-day.is-done:not(.is-today) { border-color: rgba(52,211,153,0.45); }
+.ux-day-check {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  font-size: 0.58rem;
+  color: var(--ux-success);
+  line-height: 1;
+}
+
 .ux-today-wo { padding: 16px !important; margin-bottom: 12px; }
 .ux-badge {
   display: inline-block; font-size: 0.7rem; font-weight: 800; padding: 4px 10px;
@@ -104,11 +196,19 @@ html, body { background: var(--ux-bg) !important; color: var(--ux-text); }
 .ux-supp-info strong { display: block; font-size: 0.9rem; }
 .ux-supp-info small { font-size: 0.72rem; color: var(--ux-muted); }
 .ux-supp-actions { display: flex; gap: 4px; flex-shrink: 0; }
-.ux-quick-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 8px 0 16px; }
+.ux-quick-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 8px 0 16px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
 .ux-q {
   border: 1px solid var(--ux-border); background: var(--ux-surface); color: var(--ux-text);
-  border-radius: 14px; padding: 12px 6px; font-family: inherit; font-size: 0.72rem; font-weight: 700;
+  border-radius: 14px; padding: 12px 4px; font-family: inherit; font-size: 0.72rem; font-weight: 700;
   display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;
+  min-width: 0; max-width: 100%; overflow: hidden;
 }
 .ux-q span { font-size: 1.2rem; }
 .ux-page-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.02em; }
@@ -119,7 +219,19 @@ html, body { background: var(--ux-bg) !important; color: var(--ux-text); }
 .ux-meal-row:last-child { border-bottom: none; }
 body.workout-mode .workout-sticky { background: rgba(6,10,18,0.94) !important; }
 .ux-swap-btn { width: 100%; margin-top: 8px; }
+
+#main-content,
+.main-content {
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
 @media (max-width: 360px) {
-  .ux-day { min-height: 52px; padding: 6px 1px; }
-  .ux-quick-row { grid-template-columns: repeat(2, 1fr); }
+  .ux-cal { padding: 10px !important; }
+  .ux-week { gap: 2px; }
+  .ux-day { min-height: 48px; padding: 5px 0 4px; border-radius: 8px; }
+  .ux-day-name { font-size: 0.62rem; }
+  .ux-day-sub { font-size: 0.46rem; }
+  .ux-quick-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
