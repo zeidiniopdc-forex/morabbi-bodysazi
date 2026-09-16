@@ -162,6 +162,9 @@
   if (typeof ensureProgramsLibrary === "function") {
     try { ensureProgramsLibrary(); } catch (e) {}
   }
+  if (typeof installNotificationOverrides === "function") {
+    try { installNotificationOverrides(); } catch (e) {}
+  }
   setTimeout(runUpgrades, 100);
-  console.log("[FitAI] UX v4 hooks active");
+  console.log("[FitAI] UX v4 hooks + system notifications");
 })();
