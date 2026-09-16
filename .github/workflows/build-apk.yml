@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -27,17 +28,24 @@ jobs:
       - name: Install Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Capacitor
+      - name: Install dependencies
         run: |
-          npm install -g @capacitor/cli
-          npm install @capacitor/core @capacitor/android
+          npm install -g @capacitor/cli@5
+          npm install
 
-      - name: Initialize Capacitor
+      - name: Ensure Capacitor config
         run: |
-          echo '{"appId":"com.fitai.app","appName":"FitAI","webDir":"www"}' > capacitor.config.json
+          if [ ! -f capacitor.config.json ]; then
+            echo '{"appId":"com.fitai.app","appName":"FitAI","webDir":"www","bundledWebRuntime":false}' > capacitor.config.json
+          fi
 
       - name: Add Android Platform
-        run: npx cap add android
+        run: |
+          if [ ! -d android ]; then
+            npx cap add android
+          else
+            echo "android platform already present"
+          fi
 
       - name: Sync Files
         run: npx cap sync android
@@ -46,7 +54,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
