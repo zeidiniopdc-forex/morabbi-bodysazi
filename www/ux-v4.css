@@ -1,0 +1,125 @@
+/* FitAI Design System UX v4 - loaded last */
+:root {
+  --ux-bg: #060a12;
+  --ux-surface: #0c1220;
+  --ux-elevated: #141c2c;
+  --ux-border: rgba(148,163,184,0.12);
+  --ux-text: #f1f5f9;
+  --ux-muted: #94a3b8;
+  --ux-primary: #2dd4bf;
+  --ux-primary-2: #06b6d4;
+  --ux-accent: #818cf8;
+  --ux-success: #34d399;
+  --ux-radius: 16px;
+  --ux-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+[data-theme="light"] {
+  --ux-bg: #f5f7fb;
+  --ux-surface: #ffffff;
+  --ux-elevated: #eef2f7;
+  --ux-border: rgba(15,23,42,0.08);
+  --ux-text: #0f172a;
+  --ux-muted: #64748b;
+  --ux-primary: #0d9488;
+  --bg: var(--ux-bg);
+  --bg-card: var(--ux-surface);
+  --text: var(--ux-text);
+  --text-muted: var(--ux-muted);
+  --primary: var(--ux-primary);
+  --border: var(--ux-border);
+}
+html, body { background: var(--ux-bg) !important; color: var(--ux-text); }
+#app {
+  background: radial-gradient(ellipse 90% 40% at 50% -15%, rgba(45,212,191,0.07), transparent), var(--ux-bg) !important;
+  max-width: 480px;
+}
+.app-header {
+  background: rgba(6,10,18,0.85) !important;
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--ux-border) !important;
+}
+[data-theme="light"] .app-header { background: rgba(255,255,255,0.9) !important; }
+.bottom-nav {
+  background: rgba(6,10,18,0.92) !important;
+  backdrop-filter: blur(18px);
+  border-top: 1px solid var(--ux-border) !important;
+}
+[data-theme="light"] .bottom-nav { background: rgba(255,255,255,0.94) !important; }
+.nav-item { border-radius: 14px; font-weight: 600; color: var(--ux-muted); }
+.nav-item.active { color: var(--ux-primary) !important; background: rgba(45,212,191,0.1); }
+.card, .ux-cal, .ux-today-wo {
+  background: var(--ux-surface) !important;
+  border: 1px solid var(--ux-border) !important;
+  border-radius: var(--ux-radius) !important;
+  box-shadow: var(--ux-shadow);
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--ux-primary), var(--ux-primary-2)) !important;
+  color: #042f2e !important;
+  font-weight: 800 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 22px rgba(45,212,191,0.25) !important;
+}
+.ux-home-top { margin-bottom: 12px; padding: 4px 2px; }
+.ux-greet { font-size: 0.85rem; color: var(--ux-muted); }
+.ux-name { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.03em; }
+.ux-date-line { font-size: 0.8rem; color: var(--ux-muted); margin-top: 2px; }
+.ux-cal { padding: 14px !important; margin-bottom: 12px; }
+.ux-cal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.ux-cal-title { font-weight: 800; font-size: 0.95rem; }
+.ux-cal-date { font-size: 0.78rem; color: var(--ux-muted); margin-top: 2px; }
+.ux-cal-prog { font-size: 0.72rem; font-weight: 700; color: var(--ux-primary); max-width: 40%; text-align: left; }
+.ux-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.ux-day {
+  position: relative; border: 1px solid var(--ux-border); background: var(--ux-elevated);
+  border-radius: 12px; padding: 8px 2px; text-align: center; font-family: inherit;
+  color: var(--ux-text); cursor: pointer; min-height: 58px;
+}
+.ux-day-name { display: block; font-weight: 800; font-size: 0.75rem; }
+.ux-day-sub { display: block; font-size: 0.58rem; color: var(--ux-muted); margin-top: 4px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ux-day.is-today { border-color: rgba(45,212,191,0.55); box-shadow: 0 0 0 1px rgba(45,212,191,0.25); }
+.ux-day.is-train { background: linear-gradient(160deg, rgba(45,212,191,0.12), var(--ux-elevated)); }
+.ux-day.is-done { border-color: rgba(52,211,153,0.45); }
+.ux-day-check { position: absolute; top: 3px; left: 3px; font-size: 0.65rem; color: var(--ux-success); }
+.ux-today-wo { padding: 16px !important; margin-bottom: 12px; }
+.ux-badge {
+  display: inline-block; font-size: 0.7rem; font-weight: 800; padding: 4px 10px;
+  border-radius: 999px; background: rgba(45,212,191,0.15); color: var(--ux-primary); margin-bottom: 8px;
+}
+.ux-badge.rest { background: rgba(129,140,248,0.15); color: var(--ux-accent); }
+.ux-today-title { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em; }
+.ux-today-meta { font-size: 0.8rem; color: var(--ux-muted); margin: 6px 0 10px; display: flex; flex-wrap: wrap; gap: 4px; }
+.ux-muscles { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.ux-next-supp {
+  font-size: 0.82rem; padding: 8px 10px; border-radius: 10px;
+  background: rgba(45,212,191,0.1); margin-bottom: 10px;
+}
+.ux-supp-row {
+  display: flex; justify-content: space-between; gap: 8px; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid var(--ux-border);
+}
+.ux-supp-row:last-child { border-bottom: none; }
+.ux-supp-row.due { background: rgba(251,191,36,0.06); margin: 0 -8px; padding: 10px 8px; border-radius: 10px; }
+.ux-supp-row.taken { opacity: 0.55; }
+.ux-supp-info strong { display: block; font-size: 0.9rem; }
+.ux-supp-info small { font-size: 0.72rem; color: var(--ux-muted); }
+.ux-supp-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.ux-quick-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 8px 0 16px; }
+.ux-q {
+  border: 1px solid var(--ux-border); background: var(--ux-surface); color: var(--ux-text);
+  border-radius: 14px; padding: 12px 6px; font-family: inherit; font-size: 0.72rem; font-weight: 700;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;
+}
+.ux-q span { font-size: 1.2rem; }
+.ux-page-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.02em; }
+.ux-prog { margin-bottom: 10px; }
+.ux-prog.is-active { border-color: rgba(45,212,191,0.4) !important; }
+.ux-prog-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ux-meal-row { padding: 10px 0; border-bottom: 1px solid var(--ux-border); }
+.ux-meal-row:last-child { border-bottom: none; }
+body.workout-mode .workout-sticky { background: rgba(6,10,18,0.94) !important; }
+.ux-swap-btn { width: 100%; margin-top: 8px; }
+@media (max-width: 360px) {
+  .ux-day { min-height: 52px; padding: 6px 1px; }
+  .ux-quick-row { grid-template-columns: repeat(2, 1fr); }
+}
