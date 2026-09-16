@@ -1,0 +1,87 @@
+/* Nutrition dashboard */
+.nut-card { margin-bottom: 12px; }
+.nut-calories { margin-bottom: 12px; }
+.nut-cal-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+.nut-cal-val span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.nut-macros {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.nut-mac {
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  padding: 10px 8px;
+  border: 1px solid var(--border);
+}
+.nut-mac-val { font-weight: 800; font-size: 0.82rem; }
+.nut-mac-lbl { font-size: 0.68rem; color: var(--text-muted); margin: 2px 0 6px; }
+.nut-quick-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.nut-quick {
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 0.78rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.nut-quick:active { border-color: var(--primary); }
+.nut-meal {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: var(--bg-elevated);
+}
+.nut-meal-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: flex-start;
+}
+.nut-meal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  align-items: center;
+}
+.nut-remain {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 0.88rem;
+}
+.nut-gap, .nut-supp {
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+.nut-gap strong, .nut-supp strong { display: block; margin-bottom: 4px; }
+.nut-supp ul { margin: 6px 0 0; padding-right: 18px; }
+.nut-supp li { margin-bottom: 4px; }
+
+@media (max-width: 360px) {
+  .nut-macros { grid-template-columns: 1fr; }
+  .nut-remain { grid-template-columns: 1fr; }
+}

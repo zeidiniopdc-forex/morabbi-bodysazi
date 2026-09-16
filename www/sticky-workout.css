@@ -1,0 +1,57 @@
+/* Sticky workout tracker header + rest timer */
+body.workout-mode .app-header { display: none !important; }
+body.workout-mode .bottom-nav { display: none !important; }
+
+body.workout-mode .main-content {
+  padding: 0 12px calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+  max-height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.workout-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: linear-gradient(180deg, var(--bg) 70%, transparent);
+  padding: 10px 0 8px;
+  margin: 0 -2px 8px;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+body.workout-mode .workout-header {
+  position: relative;
+  top: auto;
+  margin: 0 !important;
+  padding: 8px 4px 6px !important;
+  border-bottom: none !important;
+  background: transparent !important;
+}
+
+body.workout-mode .timer-display {
+  font-size: 1.65rem !important;
+}
+
+body.workout-mode .rest-timer {
+  margin: 6px 0 0 !important;
+  padding: 10px 12px !important;
+  border-radius: 14px !important;
+}
+
+body.workout-mode .rest-timer .time {
+  font-size: 1.85rem !important;
+}
+
+body.workout-mode .rest-timer.hidden {
+  display: none !important;
+}
+
+.workout-sticky .rest-timer:not(.hidden) {
+  box-shadow: 0 6px 20px rgba(34, 211, 238, 0.15);
+}
+
+.workout-sticky.is-resting {
+  padding-bottom: 4px;
+}
