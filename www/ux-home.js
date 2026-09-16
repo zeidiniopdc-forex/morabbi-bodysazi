@@ -41,24 +41,35 @@ function getWeekDayStatus(dayIdx, st) {
     session: sid != null ? (getActiveProgram(st).sessions || []).find(function (s) { return s.id === sid; }) : null
   };
 }
+function shortCalLabel(st) {
+  if (st.isRest) return "است";
+  var sess = st.session;
+  if (!sess) return "—";
+  if (sess.shortName) return String(sess.shortName).slice(0, 4);
+  var n = String(sess.name || "");
+  n = n.replace(/^جلسه\s*/, "ج");
+  if (n.length > 4) n = n.slice(0, 4);
+  return n || "تمرین";
+}
 function renderHomeWeekCalendar() {
   var cells = IR_WEEK_ORDER_HOME.map(function (d) {
     var st = getWeekDayStatus(d, state);
-    var sess = st.session;
     var cls = "ux-day";
     if (st.isToday) cls += " is-today";
     if (st.isRest) cls += " is-rest"; else cls += " is-train";
     if (st.done) cls += " is-done";
     var label = DAY_NAMES_SHORT[d];
-    var sub = st.isRest ? "استراحت" : (sess ? (sess.shortName || sess.name || "").replace("جلسه ", "ج") : "—");
+    var sub = shortCalLabel(st);
     return '<button type="button" class="' + cls + '" data-day="' + d + '" onclick="onHomeDaySelect(' + d + ')">' +
       '<span class="ux-day-name">' + label + '</span><span class="ux-day-sub">' + sub + '</span>' +
       (st.done ? '<span class="ux-day-check">✓</span>' : '') + '</button>';
   }).join("");
   var j = jalaliToday();
+  var progName = getActiveProgram(state).name || "برنامه";
+  if (progName.length > 18) progName = progName.slice(0, 16) + "…";
   return '<div class="ux-cal card"><div class="ux-cal-head"><div><div class="ux-cal-title">تقویم هفته</div>' +
     '<div class="ux-cal-date">' + j.jd + ' ' + J_MONTHS[j.jm - 1] + ' ' + j.jy + '</div></div>' +
-    '<div class="ux-cal-prog">' + (getActiveProgram(state).name || "برنامه") + '</div></div>' +
+    '<div class="ux-cal-prog">' + progName + '</div></div>' +
     '<div class="ux-week">' + cells + '</div></div>';
 }
 function onHomeDaySelect(dayIdx) {
