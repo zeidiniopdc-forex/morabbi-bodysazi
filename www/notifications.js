@@ -240,6 +240,23 @@ async function scheduleAllSystemNotifications() {
   return { ok: true, web: true };
 }
 
+/** غیرفعال‌سازی تمام اعلان‌ها و پاک‌کردن زمان‌بندی‌ها */
+async function disableSystemNotifications() {
+  const LocalNotifications = getLocalNotificationsPlugin();
+  if (LocalNotifications && isNativeApp()) {
+    try {
+      await cancelAllScheduled(LocalNotifications);
+    } catch (e) {
+      console.warn("cancel on disable", e);
+    }
+  }
+  if (typeof state !== "undefined") {
+    state.notificationsEnabled = false;
+    if (typeof saveState === "function") saveState(state);
+  }
+  toast("اعلان‌ها غیرفعال شد", "success");
+}
+
 async function fireSystemNotification(title, body, extra) {
   const LocalNotifications = getLocalNotificationsPlugin();
   if (LocalNotifications && isNativeApp()) {
@@ -273,6 +290,9 @@ async function enableSystemNotifications() {
 function installNotificationOverrides() {
   window.enableNotifications = function () {
     enableSystemNotifications();
+  };
+  window.disableNotifications = function () {
+    disableSystemNotifications();
   };
   window.scheduleLocalReminders = function () {
     return scheduleAllSystemNotifications();

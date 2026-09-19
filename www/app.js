@@ -1209,8 +1209,11 @@ function renderSettings() {
       <label class="chip-check"><input type="checkbox" id="set-sound-supp" ${state.settings.supplementSound !== false ? "checked" : ""} /><span>صدای یادآوری مکمل</span></label>
       <label class="chip-check"><input type="checkbox" id="set-sound-workout" ${state.settings.workoutReminderSound !== false ? "checked" : ""} /><span>صدای یادآوری جلسه تمرین</span></label>
       <button type="button" class="btn btn-secondary btn-sm btn-block mt-1" onclick="testAppSounds()">تست صداها</button>
-      <button type="button" class="btn btn-secondary btn-sm btn-block mt-1" onclick="enableNotifications()">فعال‌سازی اعلان سیستم</button>
-      <p class="text-muted" style="font-size:0.75rem;margin-top:8px">یادآوری‌ها وقتی اپ باز است بررسی می‌شوند. برای اعلان پس‌زمینه، مجوز اعلان را بدهید.</p>
+      <div class="mt-1" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn btn-primary btn-sm" style="flex:1" onclick="enableNotifications()">فعال‌سازی اعلان سیستم</button>
+        <button type="button" class="btn btn-danger btn-sm" style="flex:1" onclick="disableNotifications()">غیرفعال‌سازی اعلان‌ها</button>
+      </div>
+      <p class="text-muted" style="font-size:0.75rem;margin-top:8px">یادآوری‌ها وقتی اپ باز است بررسی می‌شوند. برای اعلان پس‌زمینه، مجوز اعلان را بدهید. با غیرفعال‌سازی، تمام یادآوری‌های زمان‌بندی‌شده پاک می‌شوند.</p>
     </div>
     <div class="card">
       <div class="card-title">محدودیت‌های ثبت‌شده</div>
