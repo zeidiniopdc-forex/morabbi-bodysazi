@@ -1,4 +1,4 @@
-// ========== Nutrition UI ==========
+// ========== Nutrition UI - Enhanced with Dropdown ==========
 function renderNutritionDashboardBlock() {
   const targets = calcNutritionTargets(state);
   const log = getTodayNutritionLog();
@@ -13,6 +13,12 @@ function renderNutritionDashboardBlock() {
   const gaps = analyzeNutritionGaps(totals, targets);
   const tips = suggestSupplementsFromNutrition(gaps, totals, targets);
   const pct = (a, b) => Math.min(100, Math.round((b ? a / b : 0) * 100));
+  
+  // ساخت گزینه‌های منوی دراپ‌داون
+  const foodOptions = (typeof FOOD_DROPDOWN_LIST !== 'undefined' ? FOOD_DROPDOWN_LIST : [])
+    .map(f => `<option value="${f.name}" data-kcal="${f.kcal}" data-p="${f.protein}" data-c="${f.carbs}" data-f="${f.fat}" data-unit="${f.unit}">${f.name}</option>`)
+    .join('');
+  
   const mealsHtml = (log.meals || []).length
     ? log.meals.map(m => `
       <div class="nut-meal">
@@ -36,13 +42,16 @@ function renderNutritionDashboardBlock() {
           <button type="button" class="btn btn-sm btn-danger" onclick="removeMeal('${m.id}')">حذف</button>
         </div>
       </div>`).join("")
-    : `<div class="empty-state" style="padding:20px"><div class="icon">🍽️</div><p>هنوز غذایی ثبت نشده. از عبارت فارسی یا غذاهای سریع استفاده کنید.</p></div>`;
+    : `<div class="empty-state" style="padding:20px"><div class="icon">🍽️</div><p>هنوز غذایی ثبت نشده. از لیست یا جستجو استفاده کنید.</p></div>`;
+  
   const quick = (typeof QUICK_IRANIAN_FOODS !== "undefined" ? QUICK_IRANIAN_FOODS : []).map(q =>
     `<button type="button" class="nut-quick" onclick='addFoodFromText(${JSON.stringify(q.text)})'>${q.label}</button>`
   ).join("");
+  
   const gapsHtml = gaps.length
     ? gaps.map(g => `<div class="nut-gap"><strong>${g.title}</strong><p>${g.detail}</p></div>`).join("")
-    : `<p class="text-muted" style="font-size:0.82rem">نسبت به اهداف غذایی امروز فاصلهٔ قابل‌توجهی دیده نمی‌شود (بر اساس لاگ).</p>`;
+    : `<p class="text-muted" style="font-size:0.82rem">نسبت به اهداف غذایی امروز فاصلهٔ قابل‌توجهی دیده نمی‌شود.</p>`;
+  
   const tipsHtml = tips.length
     ? tips.map(t => `
       <div class="nut-supp">
@@ -54,7 +63,8 @@ function renderNutritionDashboardBlock() {
           <li class="text-muted">${t.warnings}</li>
         </ul>
       </div>`).join("")
-    : `<p class="text-muted" style="font-size:0.82rem">پیشنهاد مکمل خاصی بر اساس لاگ فعلی نیست. اولویت با غذای کامل است.</p>`;
+    : `<p class="text-muted" style="font-size:0.82rem">پیشنهاد مکمل خاصی بر اساس لاگ فعلی نیست.</p>`;
+  
   return `
     <div class="card nut-card" id="nutrition-dashboard">
       <div class="flex-between mb-1">
@@ -72,18 +82,49 @@ function renderNutritionDashboardBlock() {
         <div class="nut-mac"><div class="nut-mac-val">${totals.fat}/${targets.fat}g</div><div class="nut-mac-lbl">چربی</div><div class="progress-bar"><div class="progress-fill" style="width:${pct(totals.fat, targets.fat)}%;background:var(--accent)"></div></div></div>
       </div>
     </div>
+    
     <div class="card nut-card">
-      <div class="card-title">افزودن غذا (فارسی)</div>
+      <div class="card-title">افزودن غذا از لیست</div>
+      <div class="food-selector-container">
+        <select id="food-select" class="form-input food-select" onchange="onFoodSelectChange()">
+          <option value="">انتخاب ماده غذایی...</option>
+          ${foodOptions}
+        </select>
+        <div class="food-info-display" id="food-info-display"></div>
+      </div>
+      <div class="grid-2 mt-1">
+        <div class="form-group">
+          <label class="form-label">مقدار (گرم/میلی‌لیتر)</label>
+          <input type="number" id="food-amount" class="form-input" placeholder="مثلاً ۱۰۰" min="1" value="100" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">واحد</label>
+          <select id="food-unit" class="form-input">
+            <option value="g">گرم</option>
+            <option value="ml">میلی‌لیتر</option>
+            <option value="piece">عدد</option>
+            <option value="spoon">قاشق</option>
+            <option value="plate">بشقاب</option>
+          </select>
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary btn-block mt-1" onclick="addSelectedFood()">➕ افزودن به وعده</button>
+    </div>
+    
+    <div class="card nut-card">
+      <div class="card-title">افزودن غذا (جستجوی فارسی)</div>
       <textarea class="form-input" id="nut-nl-input" rows="2" placeholder="مثال: ظهر یک بشقاب قورمه‌سبزی با برنج خوردم"></textarea>
       <button type="button" class="btn btn-primary btn-block mt-1" onclick="submitFoodText()">ثبت تخمین وعده</button>
-      <p class="text-muted" style="font-size:0.72rem;margin-top:8px;line-height:1.5">مقادیر تقریبی‌اند (سروینگ استاندارد داخلی). بعد از ثبت می‌توانید سروینگ را اصلاح کنید.</p>
+      <p class="text-muted" style="font-size:0.72rem;margin-top:8px;line-height:1.5">مقادیر تقریبی‌اند. بعد از ثبت می‌توانید سروینگ را اصلاح کنید.</p>
       <div class="card-title" style="margin-top:12px">غذاهای سریع ایرانی</div>
       <div class="nut-quick-grid">${quick}</div>
     </div>
+    
     <div class="card nut-card">
       <div class="card-title">وعده‌های امروز</div>
       ${mealsHtml}
     </div>
+    
     <div class="card nut-card">
       <div class="card-title">باقی‌مانده اهداف</div>
       <div class="nut-remain">
@@ -94,16 +135,120 @@ function renderNutritionDashboardBlock() {
         <div>فیبر: <strong>${rem.fiber}</strong> / ${targets.fiber} g</div>
       </div>
     </div>
+    
     <div class="card nut-card">
       <div class="card-title">فاصله با اهداف غذایی</div>
-      <p class="text-muted" style="font-size:0.75rem;margin-bottom:8px">این‌ها کمبود پزشکی/آزمایشگاهی نیستند؛ فقط مقایسه با هدف تغذیه‌ای پروفایل است.</p>
+      <p class="text-muted" style="font-size:0.75rem;margin-bottom:8px">این‌ها کمبود پزشکی نیستند؛ فقط مقایسه با هدف تغذیه‌ای است.</p>
       ${gapsHtml}
     </div>
+    
     <div class="card nut-card">
       <div class="card-title">پیشنهاد مکمل (غیردرمانی)</div>
       ${tipsHtml}
     </div>`;
 }
+
+function onFoodSelectChange() {
+  const select = document.getElementById('food-select');
+  const display = document.getElementById('food-info-display');
+  const selectedOption = select.options[select.selectedIndex];
+  
+  if (!selectedOption || !selectedOption.value) {
+    display.innerHTML = '';
+    return;
+  }
+  
+  const kcal = selectedOption.getAttribute('data-kcal');
+  const p = selectedOption.getAttribute('data-p');
+  const c = selectedOption.getAttribute('data-c');
+  const f = selectedOption.getAttribute('data-f');
+  const unit = selectedOption.getAttribute('data-unit');
+  
+  display.innerHTML = `
+    <div class="food-info-box">
+      <div class="food-info-row"><span>کالری:</span> <strong>${kcal}</strong> kcal / 100${unit}</div>
+      <div class="food-info-row"><span>پروتئین:</span> <strong>${p}</strong>g</div>
+      <div class="food-info-row"><span>کربوهیدرات:</span> <strong>${c}</strong>g</div>
+      <div class="food-info-row"><span>چربی:</span> <strong>${f}</strong>g</div>
+    </div>
+  `;
+}
+
+function addSelectedFood() {
+  const select = document.getElementById('food-select');
+  const amountInput = document.getElementById('food-amount');
+  const unitSelect = document.getElementById('food-unit');
+  
+  const foodName = select.value;
+  const amount = Number(amountInput.value) || 100;
+  const unit = unitSelect.value;
+  
+  if (!foodName) {
+    toast('لطفاً یک ماده غذایی انتخاب کنید', 'warning');
+    return;
+  }
+  
+  // پیدا کردن اطلاعات غذا
+  const foodData = (typeof FOOD_DROPDOWN_LIST !== 'undefined' ? FOOD_DROPDOWN_LIST : []).find(f => f.name === foodName);
+  if (!foodData) {
+    toast('اطلاعات غذا یافت نشد', 'warning');
+    return;
+  }
+  
+  // محاسبه مقدار واقعی بر اساس واحد
+  let grams = amount;
+  if (unit === 'piece' && foodData.pieceG) {
+    grams = amount * foodData.pieceG;
+  } else if (unit === 'spoon') {
+    grams = amount * 12;
+  } else if (unit === 'plate') {
+    grams = amount * 150;
+  }
+  
+  // محاسبه ماکروها
+  const factor = grams / 100;
+  const totals = {
+    kcal: Math.round(foodData.kcal * factor),
+    protein: +(foodData.protein * factor).toFixed(1),
+    carbs: +(foodData.carbs * factor).toFixed(1),
+    fat: +(foodData.fat * factor).toFixed(1),
+    fiber: +(foodData.fiber * factor).toFixed(1)
+  };
+  
+  const meal = {
+    id: 'm_' + Date.now().toString(36),
+    text: `${foodName} - ${grams} گرم`,
+    label: foodName,
+    servingLabel: `${grams} گرم`,
+    servings: 1,
+    estimated: false,
+    items: [{
+      name: foodName,
+      grams: grams,
+      kcal: totals.kcal,
+      p: totals.protein,
+      c: totals.carbs,
+      f: totals.fat,
+      fiber: totals.fiber,
+      foodKey: foodName
+    }],
+    totals: totals
+  };
+  
+  const log = getTodayNutritionLog();
+  log.meals.push(meal);
+  saveTodayNutritionLog(log);
+  
+  toast(`${foodName} اضافه شد: ${totals.kcal} kcal`, 'success');
+  
+  // ریست کردن فرم
+  select.value = '';
+  amountInput.value = '100';
+  document.getElementById('food-info-display').innerHTML = '';
+  
+  if (typeof render === 'function') render();
+}
+
 function renderNutritionEnhanced() { return renderNutritionDashboardBlock(); }
 function submitFoodText() {
   const el = document.getElementById("nut-nl-input");
@@ -152,3 +297,5 @@ window.addFoodFromText = addFoodFromText;
 window.adjustMealServing = adjustMealServing;
 window.removeMeal = removeMeal;
 window.showMealBreakdown = showMealBreakdown;
+window.onFoodSelectChange = onFoodSelectChange;
+window.addSelectedFood = addSelectedFood;
