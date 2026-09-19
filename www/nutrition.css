@@ -85,3 +85,26 @@
   .nut-macros { grid-template-columns: 1fr; }
   .nut-remain { grid-template-columns: 1fr; }
 }
+
+/* Food dropdown selector styles */
+.food-selector-container { margin-bottom: 12px; }
+.food-select { width: 100%; font-size: 0.95rem; padding: 10px; }
+.food-info-box { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px; margin-top: 8px; border: 1px solid rgba(255,255,255,0.08); }
+.food-info-row { display: flex; justify-content: space-between; font-size: 0.82rem; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.food-info-row:last-child { border-bottom: none; }
+.food-info-row span:first-child { color: var(--muted); }
+.food-info-row strong { color: var(--primary); }
+.nut-quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; margin-top: 8px; }
+.nut-quick { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 8px; font-size: 0.75rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+.nut-quick:hover { background: rgba(255,255,255,0.1); border-color: var(--primary); }
+.nut-meal { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 12px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.06); }
+.nut-meal-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.nut-meal-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.nut-remain { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; font-size: 0.85rem; padding: 8px 0; }
+.nut-gap { background: rgba(255,193,7,0.08); border-left: 3px solid var(--warning); padding: 10px; margin-bottom: 8px; border-radius: 0 8px 8px 0; }
+.nut-gap strong { display: block; margin-bottom: 4px; color: var(--warning); }
+.nut-gap p { margin: 0; font-size: 0.82rem; color: var(--muted); }
+.nut-supp { background: rgba(76,175,80,0.08); border-left: 3px solid #4CAF50; padding: 10px; margin-bottom: 8px; border-radius: 0 8px 8px 0; }
+.nut-supp strong { display: block; margin-bottom: 4px; color: #4CAF50; }
+.nut-supp p { margin: 4px 0; font-size: 0.82rem; color: var(--muted); }
+.nut-supp ul { margin: 4px 0 0 0; padding-left: 18px; font-size: 0.78rem; color: var(--muted); }
